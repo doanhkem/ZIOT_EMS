@@ -379,7 +379,10 @@ public class SendChannelValuesWorker {
 
 			// Round timestamp to Global Cycle-Time
 			final var cycleTime = this.parent.parent.cycle.getCycleTime();
-			final var timestampMillis = this.timestamp.toEpochMilli() / cycleTime * cycleTime;
+			final var timestamp = fixedFiveMinuteBucketStart != Long.MIN_VALUE //
+					? Instant.ofEpochMilli(fixedFiveMinuteBucketStart) //
+					: this.timestamp;
+			final var timestampMillis = timestamp.toEpochMilli() / cycleTime * cycleTime;
 
 			// Prepare message values
 			var sendValuesMap = new HashMap<String, JsonElement>();
@@ -421,11 +424,6 @@ public class SendChannelValuesWorker {
 	private long getFixedFiveMinuteBucketStart(Instant timestamp) {
 		final var epochMillis = timestamp.toEpochMilli();
 		final var bucketOffset = Math.floorMod(epochMillis, SEND_VALUES_OF_ALL_CHANNELS_AFTER_MILLIS);
-		final var cycleTime = Math.max(this.parent.cycle.getCycleTime(), 1_000);
-		if (bucketOffset >= cycleTime) {
-			return Long.MIN_VALUE;
-		}
-
 		final var bucketStart = epochMillis - bucketOffset;
 		if (bucketStart == this.lastSendValuesOfAllChannelsBucketStart) {
 			return Long.MIN_VALUE;
