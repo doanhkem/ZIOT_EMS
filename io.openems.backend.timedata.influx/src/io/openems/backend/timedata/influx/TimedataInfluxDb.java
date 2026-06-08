@@ -57,8 +57,6 @@ import io.openems.shared.influxdb.InfluxConnector;
 })
 public class TimedataInfluxDb extends AbstractOpenemsBackendComponent implements Timedata, EventHandler, DebugLoggable {
 
-	private static final long FIVE_MINUTES_IN_MILLIS = 5 * 60 * 1_000L;
-
 	private final Logger log = LoggerFactory.getLogger(TimedataInfluxDb.class);
 	private final FieldTypeConflictHandler fieldTypeConflictHandler;
 
@@ -210,7 +208,7 @@ public class TimedataInfluxDb extends AbstractOpenemsBackendComponent implements
 				continue;
 			}
 
-			var timestamp = alignTimestampToFiveMinuteBucket(dataEntry.getKey());
+			var timestamp = dataEntry.getKey();
 
 			if (!this.timeFilter.isValid(timestamp)) {
 				// timestamp is not within the TimeFilter
@@ -237,10 +235,6 @@ public class TimedataInfluxDb extends AbstractOpenemsBackendComponent implements
 
 			this.influxConnector.write(point);
 		}
-	}
-
-	private static long alignTimestampToFiveMinuteBucket(long timestamp) {
-		return timestamp - Math.floorMod(timestamp, FIVE_MINUTES_IN_MILLIS);
 	}
 
 	@Override

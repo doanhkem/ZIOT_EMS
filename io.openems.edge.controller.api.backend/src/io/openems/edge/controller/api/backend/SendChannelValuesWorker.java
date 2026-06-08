@@ -358,8 +358,7 @@ public class SendChannelValuesWorker {
 
 			// Round timestamp to Global Cycle-Time
 			final var cycleTime = this.parent.parent.cycle.getCycleTime();
-			final var timestamp = Instant.ofEpochMilli(fixedFiveMinuteBucketStart);
-			final var timestampMillis = timestamp.toEpochMilli() / cycleTime * cycleTime;
+			final var timestampMillis = this.timestamp.toEpochMilli() / cycleTime * cycleTime;
 
 			// Create JSON-RPC notification
 			var message = new TimestampedDataNotification();
@@ -386,6 +385,11 @@ public class SendChannelValuesWorker {
 	private long getFixedFiveMinuteBucketStart(Instant timestamp) {
 		final var epochMillis = timestamp.toEpochMilli();
 		final var bucketOffset = Math.floorMod(epochMillis, SEND_VALUES_OF_ALL_CHANNELS_AFTER_MILLIS);
+		final var cycleTime = Math.max(this.parent.cycle.getCycleTime(), 1_000);
+		if (bucketOffset >= cycleTime) {
+			return Long.MIN_VALUE;
+		}
+
 		final var bucketStart = epochMillis - bucketOffset;
 		if (bucketStart == this.lastSendValuesOfAllChannelsBucketStart) {
 			return Long.MIN_VALUE;
