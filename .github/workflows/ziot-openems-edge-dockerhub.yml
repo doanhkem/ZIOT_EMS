@@ -54,3 +54,57 @@ jobs:
           tags: |
             doanhnguyen01/ziot:openems-edge
             doanhnguyen01/ziot:openems-edge-${{ github.sha }}
+
+      - name: Prune old Docker Hub SHA tags
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          DOCKERHUB_NAMESPACE: doanhnguyen01
+          DOCKERHUB_REPOSITORY: ziot
+          TAG_PREFIX: openems-edge-
+          KEEP_TAGS: "5"
+          CURRENT_TAG: openems-edge-${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          TOKEN="$(
+            jq -n \
+              --arg username "$DOCKERHUB_USERNAME" \
+              --arg password "$DOCKERHUB_TOKEN" \
+              '{username: $username, password: $password}' \
+            | curl -fsSL \
+                -H "Content-Type: application/json" \
+                -d @- \
+                https://hub.docker.com/v2/users/login/ \
+            | jq -r '.token'
+          )"
+
+          if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
+            echo "Docker Hub login did not return a token"
+            exit 1
+          fi
+
+          TAGS_FILE="$(mktemp)"
+          URL="https://hub.docker.com/v2/repositories/${DOCKERHUB_NAMESPACE}/${DOCKERHUB_REPOSITORY}/tags?page_size=100"
+
+          while [ -n "$URL" ]; do
+            RESPONSE="$(curl -fsSL -H "Authorization: JWT ${TOKEN}" "$URL")"
+            echo "$RESPONSE" \
+              | jq -r --arg prefix "$TAG_PREFIX" \
+                  '.results[]
+                   | select(.name | startswith($prefix))
+                   | [.name, .tag_last_pushed]
+                   | @tsv' >> "$TAGS_FILE"
+            URL="$(echo "$RESPONSE" | jq -r '.next // empty')"
+          done
+
+          sort -k2,2r "$TAGS_FILE" \
+            | awk -v keep="$KEEP_TAGS" -v current="$CURRENT_TAG" 'NR > keep && $1 != current { print $1 }' \
+            | while read -r TAG; do
+                [ -n "$TAG" ] || continue
+                echo "Deleting old Docker Hub tag: ${TAG}"
+                curl -fsSL \
+                  -X DELETE \
+                  -H "Authorization: JWT ${TOKEN}" \
+                  "https://hub.docker.com/v2/repositories/${DOCKERHUB_NAMESPACE}/${DOCKERHUB_REPOSITORY}/tags/${TAG}/"
+              done
