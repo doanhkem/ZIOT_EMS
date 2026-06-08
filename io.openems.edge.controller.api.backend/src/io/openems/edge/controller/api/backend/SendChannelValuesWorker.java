@@ -3,7 +3,6 @@ package io.openems.edge.controller.api.backend;
 import static java.util.stream.Collectors.counting;
 import static java.util.stream.Collectors.groupingBy;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
@@ -58,6 +57,8 @@ public class SendChannelValuesWorker {
 
 	private static final int AGGREGATION_MINUTES = 5;
 	private static final int SEND_VALUES_OF_ALL_CHANNELS_AFTER_SECONDS = 300; /* 5 minutes */
+	private static final long SEND_VALUES_OF_ALL_CHANNELS_AFTER_MILLIS = SEND_VALUES_OF_ALL_CHANNELS_AFTER_SECONDS
+			* 1_000L;
 
 	private final Logger log = LoggerFactory.getLogger(SendChannelValuesWorker.class);
 
@@ -79,10 +80,7 @@ public class SendChannelValuesWorker {
 	private final AtomicBoolean sendValuesOfAllChannels = new AtomicBoolean(true);
 	private final AtomicBoolean sendValuesOfAllChannelsAggregated = new AtomicBoolean(true);
 
-	/**
-	 * Keeps the last timestamp when all channel values were sent.
-	 */
-	private Instant lastSendValuesOfAllChannels = Instant.MIN;
+	private long lastSendValuesOfAllChannelsBucketStart = Long.MIN_VALUE;
 
 	/**
 	 * Keeps the values of last successful send.
@@ -361,14 +359,15 @@ public class SendChannelValuesWorker {
 			// Holds the data of the last successful send. If the table is empty, it is also
 			// used as a marker to send all data.
 			final Map<String, JsonElement> lastAllValues;
+			long fixedFiveMinuteBucketStart = Long.MIN_VALUE;
 
 			if (this.parent.sendValuesOfAllChannels.getAndSet(false)) {
 				// Send values of all Channels once in a while
 				lastAllValues = ImmutableMap.of();
 
-			} else if (Duration.between(this.parent.lastSendValuesOfAllChannels, this.timestamp)
-					.getSeconds() > SEND_VALUES_OF_ALL_CHANNELS_AFTER_SECONDS) {
-				// Send values of all Channels if explicitly asked for
+			} else if ((fixedFiveMinuteBucketStart = this.parent.getFixedFiveMinuteBucketStart(this.timestamp))
+					!= Long.MIN_VALUE) {
+				// Send all values on fixed wall-clock buckets, e.g. 00/05/10/15 minutes.
 				lastAllValues = ImmutableMap.of();
 
 			} else {
@@ -410,14 +409,29 @@ public class SendChannelValuesWorker {
 			if (wasSent) {
 				// Successfully sent: update information for next runs
 				this.parent.lastAllValues = this.allValues;
-				if (lastAllValues.isEmpty()) {
-					// 'lastSentValues' was empty, i.e. all values were sent
-					this.parent.lastSendValuesOfAllChannels = this.timestamp;
+				if (fixedFiveMinuteBucketStart != Long.MIN_VALUE) {
+					this.parent.lastSendValuesOfAllChannelsBucketStart = fixedFiveMinuteBucketStart;
 				}
 			}
 
 		}
 
+	}
+
+	private long getFixedFiveMinuteBucketStart(Instant timestamp) {
+		final var epochMillis = timestamp.toEpochMilli();
+		final var bucketOffset = Math.floorMod(epochMillis, SEND_VALUES_OF_ALL_CHANNELS_AFTER_MILLIS);
+		final var cycleTime = Math.max(this.parent.cycle.getCycleTime(), 1_000);
+		if (bucketOffset >= cycleTime) {
+			return Long.MIN_VALUE;
+		}
+
+		final var bucketStart = epochMillis - bucketOffset;
+		if (bucketStart == this.lastSendValuesOfAllChannelsBucketStart) {
+			return Long.MIN_VALUE;
+		}
+
+		return bucketStart;
 	}
 
 	private static final class SendAggregatedDataTask implements Runnable {
