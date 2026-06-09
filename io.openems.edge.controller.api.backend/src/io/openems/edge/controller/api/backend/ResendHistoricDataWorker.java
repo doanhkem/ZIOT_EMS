@@ -1,11 +1,13 @@
 package io.openems.edge.controller.api.backend;
 
 import static io.openems.common.utils.CollectorUtils.toTreeBasedTable;
-import static java.util.stream.Collectors.toSet;
 
 import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Random;
@@ -29,9 +31,11 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.TreeBasedTable;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonNull;
 
 import io.openems.common.channel.AccessMode;
 import io.openems.common.channel.PersistencePriority;
+import io.openems.common.channel.Unit;
 import io.openems.common.jsonrpc.base.JsonrpcMessage;
 import io.openems.common.jsonrpc.notification.ResendDataNotification;
 import io.openems.common.types.ChannelAddress;
@@ -81,6 +85,13 @@ public final class ResendHistoricDataWorker extends AbstractWorker {
 	private volatile Timedata timedata;
 
 	private Config config;
+
+	private record ResendSchema(//
+			Set<ChannelAddress> channelsToQuery, //
+			Map<String, Unit> units, //
+			Set<String> expectedAddresses //
+	) {
+	}
 
 	/**
 	 * Trigger helper variable to delay execution of the forever method by
@@ -145,7 +156,7 @@ public final class ResendHistoricDataWorker extends AbstractWorker {
 		final var timeranges = timedata.getResendTimeranges(config.addressForSuccessfulSend(), latestResendTimestamp) //
 				.withBuffer(BUFFER_SECONDS, BUFFER_SECONDS);
 
-		final var channelsToResend = this.getChannelsToResend(config.resendPriority());
+		final var resendSchema = this.getResendSchema(config.resendPriority());
 
 		// maximum of 5 minutes range of resend data
 		for (var timerange : timeranges.maxDataInTime(MAX_RESEND_TIMESPAN_SECONDS)) {
@@ -164,9 +175,10 @@ public final class ResendHistoricDataWorker extends AbstractWorker {
 				}
 			}
 
-			final var data = timedata.queryResendData(from, to, channelsToResend);
+			final var data = timedata.queryResendData(from, to, resendSchema.channelsToQuery());
 
-			final var successful = config.onSendData().apply(new ResendDataNotification(mapResendData(data)));
+			final var successful = config.onSendData().apply(new ResendDataNotification(mapResendData(data, //
+					resendSchema.units(), resendSchema.expectedAddresses())));
 
 			if (successful) {
 				config.onLastSuccessfulResendUpdated().accept(timerange.getMaxTimestamp());
@@ -198,15 +210,32 @@ public final class ResendHistoricDataWorker extends AbstractWorker {
 		this.timedata = null;
 	}
 
-	private Set<ChannelAddress> getChannelsToResend(PersistencePriority resendPriority) {
-		return this.componentManager.getEnabledComponents().stream() //
-				.flatMap(component -> component.channels().stream()) //
-				.filter(channel -> //
-				channel.channelDoc().getAccessMode() != AccessMode.WRITE_ONLY //
-						&& channel.channelDoc().getRemotePersistencePriority() //
-								.isAtLeast(resendPriority))
-				.map(t -> t.address()) //
-				.collect(toSet());
+	private ResendSchema getResendSchema(PersistencePriority resendPriority) {
+		final var channelsToQuery = new HashSet<ChannelAddress>();
+		final var units = new HashMap<String, Unit>();
+		final var expectedAddresses = new HashSet<String>();
+
+		for (var component : this.componentManager.getEnabledComponents()) {
+			final var deviceChannels = SendChannelValuesWorker.getDeviceChannels(component.id());
+			if (deviceChannels == null) {
+				continue;
+			}
+
+			deviceChannels.stream() //
+					.map(channelId -> component.id() + "/" + channelId) //
+					.forEach(expectedAddresses::add);
+
+			component.channels().stream() //
+					.filter(channel -> deviceChannels.contains(channel.address().getChannelId())) //
+					.filter(channel -> channel.channelDoc().getAccessMode() != AccessMode.WRITE_ONLY //
+							&& channel.channelDoc().getRemotePersistencePriority().isAtLeast(resendPriority))
+					.forEach(channel -> {
+						channelsToQuery.add(channel.address());
+						units.put(channel.address().toString(), channel.channelDoc().getUnit());
+					});
+		}
+
+		return new ResendSchema(channelsToQuery, units, expectedAddresses);
 	}
 
 	@Override
@@ -247,6 +276,28 @@ public final class ResendHistoricDataWorker extends AbstractWorker {
 								.collect(Collectors.<Entry<ChannelAddress, JsonElement>, String, JsonElement>toMap(
 										t -> t.getKey().toString(), Entry::getValue)))) //
 				.entrySet().stream().collect(toTreeBasedTable());
+	}
+
+	protected static TreeBasedTable<Long, String, JsonElement> mapResendData(//
+			final SortedMap<Long, SortedMap<ChannelAddress, JsonElement>> resendData, //
+			final Map<String, Unit> units, //
+			final Set<String> expectedAddresses //
+	) {
+		final var result = TreeBasedTable.<Long, String, JsonElement>create();
+		for (var timestampEntry : resendData.entrySet()) {
+			final var timestamp = timestampEntry.getKey();
+			expectedAddresses.forEach(address -> result.put(timestamp, address, JsonNull.INSTANCE));
+			for (var channelEntry : timestampEntry.getValue().entrySet()) {
+				final var address = channelEntry.getKey().toString();
+				final var unit = units.get(address);
+				if (unit == null) {
+					continue;
+				}
+				final var value = channelEntry.getValue() == null ? JsonNull.INSTANCE : channelEntry.getValue();
+				result.put(timestamp, address, SendChannelValuesWorker.normalizeDeviceValue(unit, value));
+			}
+		}
+		return result;
 	}
 
 }
