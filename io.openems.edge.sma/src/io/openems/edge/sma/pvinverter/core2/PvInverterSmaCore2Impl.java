@@ -129,7 +129,71 @@ public class PvInverterSmaCore2Impl extends AbstractOpenemsModbusComponent imple
 						new DummyRegisterElement(40102), //
 						m(PvInverterSmaCore2.ChannelId.TMP_CAB, new SignedWordElement(40103), SCALE_FACTOR_MINUS_1), //
 						new DummyRegisterElement(40104, 40107), //
-						m(PvInverterSmaCore2.ChannelId.OPERATING_STATUS, new UnsignedWordElement(40108))));
+						m(PvInverterSmaCore2.ChannelId.OPERATING_STATUS, new UnsignedWordElement(40108))), //
+
+				new FC3ReadRegistersTask(41323, Priority.HIGH, //
+						m(PvInverterSmaCore2.ChannelId.PV1_CURRENT, new UnsignedWordElement(41323), SCALE_FACTOR_1), //
+						m(PvInverterSmaCore2.ChannelId.PV1_VOLTAGE, new UnsignedWordElement(41324), SCALE_FACTOR_2), //
+						new DummyRegisterElement(41325, 41342), //
+						m(PvInverterSmaCore2.ChannelId.PV2_CURRENT, new UnsignedWordElement(41343), SCALE_FACTOR_1), //
+						m(PvInverterSmaCore2.ChannelId.PV2_VOLTAGE, new UnsignedWordElement(41344), SCALE_FACTOR_2), //
+						new DummyRegisterElement(41345, 41362), //
+						m(PvInverterSmaCore2.ChannelId.PV3_CURRENT, new UnsignedWordElement(41363), SCALE_FACTOR_1), //
+						m(PvInverterSmaCore2.ChannelId.PV3_VOLTAGE, new UnsignedWordElement(41364), SCALE_FACTOR_2), //
+						new DummyRegisterElement(41365, 41382), //
+						m(PvInverterSmaCore2.ChannelId.PV4_CURRENT, new UnsignedWordElement(41383), SCALE_FACTOR_1), //
+						m(PvInverterSmaCore2.ChannelId.PV4_VOLTAGE, new UnsignedWordElement(41384), SCALE_FACTOR_2), //
+						new DummyRegisterElement(41385, 41402), //
+						m(PvInverterSmaCore2.ChannelId.PV5_CURRENT, new UnsignedWordElement(41403), SCALE_FACTOR_1), //
+						m(PvInverterSmaCore2.ChannelId.PV5_VOLTAGE, new UnsignedWordElement(41404), SCALE_FACTOR_2)), //
+
+				new FC3ReadRegistersTask(41423, Priority.HIGH, //
+						m(PvInverterSmaCore2.ChannelId.PV6_CURRENT, new UnsignedWordElement(41423), SCALE_FACTOR_1), //
+						m(PvInverterSmaCore2.ChannelId.PV6_VOLTAGE, new UnsignedWordElement(41424), SCALE_FACTOR_2), //
+						new DummyRegisterElement(41425, 41442), //
+						m(PvInverterSmaCore2.ChannelId.PV7_CURRENT, new UnsignedWordElement(41443), SCALE_FACTOR_1), //
+						m(PvInverterSmaCore2.ChannelId.PV7_VOLTAGE, new UnsignedWordElement(41444), SCALE_FACTOR_2), //
+						new DummyRegisterElement(41445, 41462), //
+						m(PvInverterSmaCore2.ChannelId.PV8_CURRENT, new UnsignedWordElement(41463), SCALE_FACTOR_1), //
+						m(PvInverterSmaCore2.ChannelId.PV8_VOLTAGE, new UnsignedWordElement(41464), SCALE_FACTOR_2), //
+						new DummyRegisterElement(41465, 41482), //
+						m(PvInverterSmaCore2.ChannelId.PV9_CURRENT, new UnsignedWordElement(41483), SCALE_FACTOR_1), //
+						m(PvInverterSmaCore2.ChannelId.PV9_VOLTAGE, new UnsignedWordElement(41484), SCALE_FACTOR_2), //
+						new DummyRegisterElement(41485, 41502), //
+						m(PvInverterSmaCore2.ChannelId.PV10_CURRENT, new UnsignedWordElement(41503), SCALE_FACTOR_1), //
+						m(PvInverterSmaCore2.ChannelId.PV10_VOLTAGE, new UnsignedWordElement(41504), SCALE_FACTOR_2)), //
+
+				new FC3ReadRegistersTask(41523, Priority.HIGH, //
+						m(PvInverterSmaCore2.ChannelId.PV11_CURRENT, new UnsignedWordElement(41523), SCALE_FACTOR_1), //
+						m(PvInverterSmaCore2.ChannelId.PV11_VOLTAGE, new UnsignedWordElement(41524), SCALE_FACTOR_2), //
+						new DummyRegisterElement(41525, 41542), //
+						m(PvInverterSmaCore2.ChannelId.PV12_CURRENT, new UnsignedWordElement(41543), SCALE_FACTOR_1), //
+						m(PvInverterSmaCore2.ChannelId.PV12_VOLTAGE, new UnsignedWordElement(41544), SCALE_FACTOR_2), //
+						new DummyRegisterElement(41545, 41562), //
+						m(PvInverterSmaCore2.ChannelId.PV13_CURRENT, new UnsignedWordElement(41563), SCALE_FACTOR_1), //
+						m(PvInverterSmaCore2.ChannelId.PV13_VOLTAGE, new UnsignedWordElement(41564), SCALE_FACTOR_2), //
+						new DummyRegisterElement(41565, 41582), //
+						m(PvInverterSmaCore2.ChannelId.PV14_CURRENT, new UnsignedWordElement(41583), SCALE_FACTOR_1), //
+						m(PvInverterSmaCore2.ChannelId.PV14_VOLTAGE, new UnsignedWordElement(41584), SCALE_FACTOR_2), //
+						new DummyRegisterElement(41585, 41602), //
+						m(PvInverterSmaCore2.ChannelId.PV15_CURRENT, new UnsignedWordElement(41603), SCALE_FACTOR_1), //
+						m(PvInverterSmaCore2.ChannelId.PV15_VOLTAGE, new UnsignedWordElement(41604), SCALE_FACTOR_2)), //
+
+				new FC3ReadRegistersTask(41623, Priority.HIGH, //
+						m(PvInverterSmaCore2.ChannelId.PV16_CURRENT, new UnsignedWordElement(41623), SCALE_FACTOR_1), //
+						m(PvInverterSmaCore2.ChannelId.PV16_VOLTAGE, new UnsignedWordElement(41624), SCALE_FACTOR_2), //
+						new DummyRegisterElement(41625, 41642), //
+						m(PvInverterSmaCore2.ChannelId.PV17_CURRENT, new UnsignedWordElement(41643), SCALE_FACTOR_1), //
+						m(PvInverterSmaCore2.ChannelId.PV17_VOLTAGE, new UnsignedWordElement(41644), SCALE_FACTOR_2), //
+						new DummyRegisterElement(41645, 41662), //
+						m(PvInverterSmaCore2.ChannelId.PV18_CURRENT, new UnsignedWordElement(41663), SCALE_FACTOR_1), //
+						m(PvInverterSmaCore2.ChannelId.PV18_VOLTAGE, new UnsignedWordElement(41664), SCALE_FACTOR_2), //
+						new DummyRegisterElement(41665, 41682), //
+						m(PvInverterSmaCore2.ChannelId.PV19_CURRENT, new UnsignedWordElement(41683), SCALE_FACTOR_1), //
+						m(PvInverterSmaCore2.ChannelId.PV19_VOLTAGE, new UnsignedWordElement(41684), SCALE_FACTOR_2), //
+						new DummyRegisterElement(41685, 41702), //
+						m(PvInverterSmaCore2.ChannelId.PV20_CURRENT, new UnsignedWordElement(41703), SCALE_FACTOR_1), //
+						m(PvInverterSmaCore2.ChannelId.PV20_VOLTAGE, new UnsignedWordElement(41704), SCALE_FACTOR_2)));
 	}
 
 	@Override
