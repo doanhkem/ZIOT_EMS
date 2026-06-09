@@ -228,9 +228,6 @@ public class SendChannelValuesWorker {
 		}
 
 		final var factor = getDeviceValueFactor(unit);
-		if (factor == 1.0) {
-			return value;
-		}
 		return new JsonPrimitive(normalize(value.getAsDouble() * factor));
 	}
 
@@ -241,10 +238,7 @@ public class SendChannelValuesWorker {
 		return Math.pow(10, unit.scaleFactor);
 	}
 
-	private static Number normalize(double value) {
-		if (Double.isFinite(value) && Math.rint(value) == value) {
-			return Long.valueOf((long) value);
-		}
+	private static Double normalize(double value) {
 		return Double.valueOf(Math.round(value * 1000.0) / 1000.0);
 	}
 

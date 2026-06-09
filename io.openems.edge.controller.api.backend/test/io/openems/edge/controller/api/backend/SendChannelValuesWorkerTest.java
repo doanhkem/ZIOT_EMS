@@ -45,8 +45,9 @@ public class SendChannelValuesWorkerTest {
 				.getAsDouble(), 0);
 		assertEquals(50.14, SendChannelValuesWorker.normalizeDeviceValue(Unit.MILLIHERTZ, new JsonPrimitive(50140))
 				.getAsDouble(), 0);
-		assertEquals(11210, SendChannelValuesWorker.normalizeDeviceValue(Unit.WATT, new JsonPrimitive(11210))
-				.getAsInt());
+		assertEquals("11210.0",
+				SendChannelValuesWorker.normalizeDeviceValue(Unit.WATT, new JsonPrimitive(11210)).toString());
+		assertEquals("0.0", SendChannelValuesWorker.normalizeDeviceValue(Unit.NONE, new JsonPrimitive(0)).toString());
 		assertEquals(45.2, SendChannelValuesWorker.normalizeDeviceValue(Unit.DEZIDEGREE_CELSIUS,
 				new JsonPrimitive(452)).getAsDouble(), 0);
 	}
