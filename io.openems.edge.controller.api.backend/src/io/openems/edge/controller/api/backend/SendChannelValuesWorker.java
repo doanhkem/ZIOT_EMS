@@ -232,6 +232,12 @@ public class SendChannelValuesWorker {
 	}
 
 	private static double getDeviceValueFactor(Unit unit) {
+		if (unit == Unit.THOUSANDTH) {
+			return 0.001;
+		}
+		if (unit == Unit.TENTHOUSANDTH) {
+			return 0.0001;
+		}
 		if (unit.baseUnit == null) {
 			return 1.0;
 		}
