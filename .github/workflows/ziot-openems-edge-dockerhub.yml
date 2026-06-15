@@ -67,28 +67,43 @@ jobs:
         run: |
           set -euo pipefail
 
-          TOKEN="$(
-            jq -n \
-              --arg username "$DOCKERHUB_USERNAME" \
-              --arg password "$DOCKERHUB_TOKEN" \
-              '{username: $username, password: $password}' \
-            | curl -fsSL \
-                -H "Content-Type: application/json" \
-                -d @- \
-                https://hub.docker.com/v2/users/login/ \
-            | jq -r '.token'
-          )"
+          curl_retry() {
+            curl --fail --silent --show-error --location \
+              --retry 5 \
+              --retry-delay 3 \
+              --retry-max-time 60 \
+              --retry-all-errors \
+              "$@"
+          }
+
+          if ! TOKEN="$(
+              jq -n \
+                --arg username "$DOCKERHUB_USERNAME" \
+                --arg password "$DOCKERHUB_TOKEN" \
+                '{username: $username, password: $password}' \
+              | curl_retry \
+                  -H "Content-Type: application/json" \
+                  -d @- \
+                  https://hub.docker.com/v2/users/login/ \
+              | jq -r '.token'
+            )"; then
+            echo "::warning::Unable to authenticate with Docker Hub for tag cleanup"
+            exit 0
+          fi
 
           if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
-            echo "Docker Hub login did not return a token"
-            exit 1
+            echo "::warning::Docker Hub login did not return a token; skipping tag cleanup"
+            exit 0
           fi
 
           TAGS_FILE="$(mktemp)"
           URL="https://hub.docker.com/v2/repositories/${DOCKERHUB_NAMESPACE}/${DOCKERHUB_REPOSITORY}/tags?page_size=100"
 
           while [ -n "$URL" ]; do
-            RESPONSE="$(curl -fsSL -H "Authorization: JWT ${TOKEN}" "$URL")"
+            if ! RESPONSE="$(curl_retry -H "Authorization: JWT ${TOKEN}" "$URL")"; then
+              echo "::warning::Unable to list Docker Hub tags after retries; skipping tag cleanup"
+              exit 0
+            fi
             echo "$RESPONSE" \
               | jq -r --arg prefix "$TAG_PREFIX" \
                   '.results[]
@@ -103,8 +118,10 @@ jobs:
             | while read -r TAG; do
                 [ -n "$TAG" ] || continue
                 echo "Deleting old Docker Hub tag: ${TAG}"
-                curl -fsSL \
-                  -X DELETE \
-                  -H "Authorization: JWT ${TOKEN}" \
-                  "https://hub.docker.com/v2/repositories/${DOCKERHUB_NAMESPACE}/${DOCKERHUB_REPOSITORY}/tags/${TAG}/"
+                if ! curl_retry \
+                    -X DELETE \
+                    -H "Authorization: JWT ${TOKEN}" \
+                    "https://hub.docker.com/v2/repositories/${DOCKERHUB_NAMESPACE}/${DOCKERHUB_REPOSITORY}/tags/${TAG}/"; then
+                  echo "::warning::Unable to delete Docker Hub tag ${TAG} after retries"
+                fi
               done
