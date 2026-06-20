@@ -42,6 +42,7 @@ import io.openems.edge.ess.api.SymmetricEss;
 import io.openems.edge.ess.power.api.Power;
 import io.openems.edge.timedata.api.Timedata;
 import io.openems.edge.timedata.api.TimedataProvider;
+import io.openems.edge.timedata.api.utils.CalculateEnergyFromPower;
 
 @Designate(ocd = Config.class, factory = true)
 @Component(//
@@ -70,6 +71,10 @@ public class EssOmni261Impl extends AbstractOpenemsModbusComponent
 	private volatile Timedata timedata = null;
 
 	private Config config;
+	private final CalculateEnergyFromPower calculateChargeEnergy = new CalculateEnergyFromPower(this,
+			SymmetricEss.ChannelId.ACTIVE_CHARGE_ENERGY);
+	private final CalculateEnergyFromPower calculateDischargeEnergy = new CalculateEnergyFromPower(this,
+			SymmetricEss.ChannelId.ACTIVE_DISCHARGE_ENERGY);
 
 	public EssOmni261Impl() {
 		super(//
@@ -227,7 +232,10 @@ public class EssOmni261Impl extends AbstractOpenemsModbusComponent
 			return;
 		}
 		switch (event.getTopic()) {
-		case EdgeEventConstants.TOPIC_CYCLE_AFTER_PROCESS_IMAGE -> this.updateConfiguredLimits();
+		case EdgeEventConstants.TOPIC_CYCLE_AFTER_PROCESS_IMAGE -> {
+			this.updateConfiguredLimits();
+			this.updateEnergyFromActivePower();
+		}
 		}
 	}
 
@@ -277,6 +285,20 @@ public class EssOmni261Impl extends AbstractOpenemsModbusComponent
 		this._setMaxApparentPower(this.config.maxApparentPower());
 		this.getAllowedChargePowerChannel().setNextValue(-Math.abs(this.config.maxChargePower()));
 		this._setAllowedDischargePower(Math.abs(this.config.maxDischargePower()));
+	}
+
+	private void updateEnergyFromActivePower() {
+		var activePower = this.getActivePower().get();
+		if (activePower == null) {
+			this.calculateChargeEnergy.update(null);
+			this.calculateDischargeEnergy.update(null);
+		} else if (activePower > 0) {
+			this.calculateChargeEnergy.update(0);
+			this.calculateDischargeEnergy.update(activePower);
+		} else {
+			this.calculateChargeEnergy.update(-activePower);
+			this.calculateDischargeEnergy.update(0);
+		}
 	}
 
 	private void updateGridMode(Object value) {
