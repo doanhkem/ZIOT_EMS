@@ -31,6 +31,7 @@ import io.openems.edge.bridge.modbus.api.element.SignedDoublewordElement;
 import io.openems.edge.bridge.modbus.api.element.SignedWordElement;
 import io.openems.edge.bridge.modbus.api.element.UnsignedWordElement;
 import io.openems.edge.bridge.modbus.api.task.FC3ReadRegistersTask;
+import io.openems.edge.bridge.modbus.api.task.FC4ReadInputRegistersTask;
 import io.openems.edge.bridge.modbus.api.task.FC6WriteRegisterTask;
 import io.openems.edge.common.channel.IntegerWriteChannel;
 import io.openems.edge.common.component.OpenemsComponent;
@@ -145,50 +146,50 @@ public class EssOmni430PcsImpl extends AbstractOpenemsModbusComponent
 	@Override
 	protected ModbusProtocol defineModbusProtocol() {
 		return new ModbusProtocol(this, //
-				new FC3ReadRegistersTask(30021, Priority.HIGH, //
+				new FC4ReadInputRegistersTask(30021, Priority.HIGH, //
 						m(new SignedWordElement(30021)) //
 								.m(EssOmni430Pcs.ChannelId.SYSTEM_OUTPUT_POWER, MULTIPLY(100)) //
 								.m(SymmetricEss.ChannelId.ACTIVE_POWER, MULTIPLY(100)) //
 								.build()), //
-				new FC3ReadRegistersTask(30024, Priority.HIGH, //
+				new FC4ReadInputRegistersTask(30024, Priority.HIGH, //
 						m(new SignedWordElement(30024)) //
 								.m(SymmetricEss.ChannelId.REACTIVE_POWER, MULTIPLY(100)) //
 								.build()), //
-				new FC3ReadRegistersTask(30037, Priority.HIGH, //
+				new FC4ReadInputRegistersTask(30037, Priority.HIGH, //
 						m(EssOmni430Pcs.ChannelId.SYSTEM_SOC, new SignedWordElement(30037))), //
-				new FC3ReadRegistersTask(30108, Priority.LOW, //
+				new FC4ReadInputRegistersTask(30108, Priority.LOW, //
 						m(EssOmni430Pcs.ChannelId.SYSTEM_OPERATION_STATUS, new SignedWordElement(30108))), //
-				new FC3ReadRegistersTask(32352, Priority.LOW, //
+				new FC4ReadInputRegistersTask(32352, Priority.LOW, //
 						m(EssOmni430Pcs.ChannelId.BESS_CHARGE_ENERGY_TODAY, new SignedWordElement(32352), MULTIPLY(0.1)), //
 						m(EssOmni430Pcs.ChannelId.BESS_DISCHARGE_ENERGY_TODAY, new SignedWordElement(32353),
 								MULTIPLY(0.1))), //
-				new FC3ReadRegistersTask(32376, Priority.HIGH, //
+				new FC4ReadInputRegistersTask(32376, Priority.HIGH, //
 						m(SymmetricEss.ChannelId.ACTIVE_CHARGE_ENERGY, new SignedDoublewordElement(32376),
 								MULTIPLY(100)), //
 						m(SymmetricEss.ChannelId.ACTIVE_DISCHARGE_ENERGY, new SignedDoublewordElement(32378),
 								MULTIPLY(100))), //
-				new FC3ReadRegistersTask(32456, Priority.LOW, //
+				new FC4ReadInputRegistersTask(32456, Priority.LOW, //
 						m(EssOmni430Pcs.ChannelId.PCS_OPERATION_STATUS, new UnsignedWordElement(32456)), //
 						m(EssOmni430Pcs.ChannelId.PCS_FAULT_STATUS, new UnsignedWordElement(32457))), //
-				new FC3ReadRegistersTask(32499, Priority.LOW, //
+				new FC4ReadInputRegistersTask(32499, Priority.LOW, //
 						m(EssOmni430Pcs.ChannelId.PCS_FAULT_WORD_1, new UnsignedWordElement(32499)), //
 						m(EssOmni430Pcs.ChannelId.PCS_FAULT_WORD_2, new UnsignedWordElement(32500)), //
 						m(EssOmni430Pcs.ChannelId.PCS_FAULT_WORD_3, new UnsignedWordElement(32501)), //
 						m(EssOmni430Pcs.ChannelId.PCS_FAULT_WORD_4, new UnsignedWordElement(32502))), //
-				new FC3ReadRegistersTask(32516, Priority.HIGH, //
+				new FC4ReadInputRegistersTask(32516, Priority.HIGH, //
 						m(new SignedWordElement(32516)) //
 								.m(EssOmni430Pcs.ChannelId.PCS_GRID_STATUS, DIRECT_1_TO_1) //
 								.build()
 								.onUpdateCallback(this::updateGridMode)), //
-				new FC3ReadRegistersTask(32520, Priority.HIGH, //
+				new FC4ReadInputRegistersTask(32520, Priority.HIGH, //
 						m(EssOmni430Pcs.ChannelId.PCS_ACTIVE_POWER, new SignedWordElement(32520), MULTIPLY(100))), //
-				new FC3ReadRegistersTask(32523, Priority.HIGH, //
+				new FC4ReadInputRegistersTask(32523, Priority.HIGH, //
 						m(EssOmni430Pcs.ChannelId.PCS_REACTIVE_POWER, new SignedWordElement(32523), MULTIPLY(100))), //
-				new FC3ReadRegistersTask(32525, Priority.HIGH, //
+				new FC4ReadInputRegistersTask(32525, Priority.HIGH, //
 						m(EssOmni430Pcs.ChannelId.PCS_POWER_FACTOR, new SignedWordElement(32525)), //
 						m(EssOmni430Pcs.ChannelId.PCS_APPARENT_POWER, new SignedWordElement(32526), MULTIPLY(100)), //
 						m(EssOmni430Pcs.ChannelId.PCS_AC_FREQUENCY, new SignedWordElement(32527), MULTIPLY(10))), //
-				new FC3ReadRegistersTask(32542, Priority.LOW, //
+				new FC4ReadInputRegistersTask(32542, Priority.LOW, //
 						m(EssOmni430Pcs.ChannelId.PCS_TEMPERATURE_1, new SignedWordElement(32542), MULTIPLY(0.1)), //
 						m(EssOmni430Pcs.ChannelId.PCS_TEMPERATURE_2, new SignedWordElement(32543), MULTIPLY(0.1)), //
 						m(EssOmni430Pcs.ChannelId.PCS_TEMPERATURE_3, new SignedWordElement(32544), MULTIPLY(0.1)), //
@@ -200,7 +201,7 @@ public class EssOmni430PcsImpl extends AbstractOpenemsModbusComponent
 						m(EssOmni430Pcs.ChannelId.PCS_DC_VOLTAGE, new SignedWordElement(32550), MULTIPLY(100)), //
 						m(EssOmni430Pcs.ChannelId.PCS_DC_CURRENT, new SignedWordElement(32551), MULTIPLY(100)), //
 						m(EssOmni430Pcs.ChannelId.PCS_DC_POWER, new SignedWordElement(32552), MULTIPLY(100))), //
-				new FC3ReadRegistersTask(33135, Priority.HIGH, //
+				new FC4ReadInputRegistersTask(33135, Priority.HIGH, //
 						m(new SignedWordElement(33135)) //
 								.m(EssOmni430Pcs.ChannelId.BESS_SOC, MULTIPLY(0.1)) //
 								.m(SymmetricEss.ChannelId.SOC, MULTIPLY(0.1)) //
@@ -208,39 +209,39 @@ public class EssOmni430PcsImpl extends AbstractOpenemsModbusComponent
 						m(EssOmni430Pcs.ChannelId.BESS_SOH, new SignedWordElement(33136), MULTIPLY(0.1)), //
 						m(EssOmni430Pcs.ChannelId.BESS_DC_VOLTAGE, new SignedWordElement(33137), MULTIPLY(100)), //
 						m(EssOmni430Pcs.ChannelId.BESS_DC_CURRENT, new SignedWordElement(33138), MULTIPLY(100))), //
-				new FC3ReadRegistersTask(33161, Priority.HIGH, //
+				new FC4ReadInputRegistersTask(33161, Priority.HIGH, //
 						m(EssOmni430Pcs.ChannelId.BMS_REQUEST_MAX_CHARGE_CURRENT, new SignedWordElement(33161),
 								MULTIPLY(100)), //
 						m(EssOmni430Pcs.ChannelId.BMS_REQUEST_MAX_DISCHARGE_CURRENT, new SignedWordElement(33162),
 								MULTIPLY(100))), //
-				new FC3ReadRegistersTask(33165, Priority.HIGH, //
+				new FC4ReadInputRegistersTask(33165, Priority.HIGH, //
 						m(EssOmni430Pcs.ChannelId.BMS_MAX_CELL_VOLTAGE_NUMBER, new SignedWordElement(33165)), //
 						m(new SignedWordElement(33166)) //
 								.m(EssOmni430Pcs.ChannelId.BMS_MAX_CELL_VOLTAGE, DIRECT_1_TO_1) //
 								.m(SymmetricEss.ChannelId.MAX_CELL_VOLTAGE, DIRECT_1_TO_1) //
 								.build()), //
-				new FC3ReadRegistersTask(33169, Priority.HIGH, //
+				new FC4ReadInputRegistersTask(33169, Priority.HIGH, //
 						m(EssOmni430Pcs.ChannelId.BMS_MIN_CELL_VOLTAGE_NUMBER, new SignedWordElement(33169)), //
 						m(new SignedWordElement(33170)) //
 								.m(EssOmni430Pcs.ChannelId.BMS_MIN_CELL_VOLTAGE, DIRECT_1_TO_1) //
 								.m(SymmetricEss.ChannelId.MIN_CELL_VOLTAGE, DIRECT_1_TO_1) //
 								.build()), //
-				new FC3ReadRegistersTask(33174, Priority.HIGH, //
+				new FC4ReadInputRegistersTask(33174, Priority.HIGH, //
 						m(EssOmni430Pcs.ChannelId.BMS_MAX_CELL_TEMPERATURE_NUMBER, new SignedWordElement(33174)), //
 						m(new SignedWordElement(33175)) //
 								.m(EssOmni430Pcs.ChannelId.BMS_MAX_CELL_TEMPERATURE, MULTIPLY(0.1)) //
 								.m(SymmetricEss.ChannelId.MAX_CELL_TEMPERATURE, MULTIPLY(0.1)) //
 								.build()), //
-				new FC3ReadRegistersTask(33178, Priority.HIGH, //
+				new FC4ReadInputRegistersTask(33178, Priority.HIGH, //
 						m(EssOmni430Pcs.ChannelId.BMS_MIN_CELL_TEMPERATURE_NUMBER, new SignedWordElement(33178)), //
 						m(new SignedWordElement(33179)) //
 								.m(EssOmni430Pcs.ChannelId.BMS_MIN_CELL_TEMPERATURE, MULTIPLY(0.1)) //
 								.m(SymmetricEss.ChannelId.MIN_CELL_TEMPERATURE, MULTIPLY(0.1)) //
 								.build()), //
-				new FC3ReadRegistersTask(33181, Priority.LOW, //
+				new FC4ReadInputRegistersTask(33181, Priority.LOW, //
 						m(EssOmni430Pcs.ChannelId.BMS_PROTECTED_WORD, new UnsignedWordElement(33181)), //
 						m(EssOmni430Pcs.ChannelId.BMS_WARNING_WORD, new UnsignedWordElement(33182))), //
-				new FC3ReadRegistersTask(33184, Priority.LOW, //
+				new FC4ReadInputRegistersTask(33184, Priority.LOW, //
 						m(EssOmni430Pcs.ChannelId.BMS_FAULT_WORD, new UnsignedWordElement(33184))) //
 		);
 	}
