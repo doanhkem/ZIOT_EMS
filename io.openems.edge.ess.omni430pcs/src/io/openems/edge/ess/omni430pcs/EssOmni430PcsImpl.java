@@ -167,7 +167,7 @@ public class EssOmni430PcsImpl extends AbstractOpenemsModbusComponent
 								MULTIPLY(100)), //
 						m(SymmetricEss.ChannelId.ACTIVE_DISCHARGE_ENERGY, new SignedDoublewordElement(32378),
 								MULTIPLY(100))), //
-				new FC3ReadRegistersTask(32455, Priority.LOW, //
+				new FC3ReadRegistersTask(32456, Priority.LOW, //
 						m(EssOmni430Pcs.ChannelId.PCS_OPERATION_STATUS, new UnsignedWordElement(32456)), //
 						m(EssOmni430Pcs.ChannelId.PCS_FAULT_STATUS, new UnsignedWordElement(32457))), //
 				new FC3ReadRegistersTask(32499, Priority.LOW, //
@@ -218,7 +218,8 @@ public class EssOmni430PcsImpl extends AbstractOpenemsModbusComponent
 						m(new SignedWordElement(33166)) //
 								.m(EssOmni430Pcs.ChannelId.BMS_MAX_CELL_VOLTAGE, DIRECT_1_TO_1) //
 								.m(SymmetricEss.ChannelId.MAX_CELL_VOLTAGE, DIRECT_1_TO_1) //
-								.build(), //
+								.build()), //
+				new FC3ReadRegistersTask(33169, Priority.HIGH, //
 						m(EssOmni430Pcs.ChannelId.BMS_MIN_CELL_VOLTAGE_NUMBER, new SignedWordElement(33169)), //
 						m(new SignedWordElement(33170)) //
 								.m(EssOmni430Pcs.ChannelId.BMS_MIN_CELL_VOLTAGE, DIRECT_1_TO_1) //
@@ -229,7 +230,8 @@ public class EssOmni430PcsImpl extends AbstractOpenemsModbusComponent
 						m(new SignedWordElement(33175)) //
 								.m(EssOmni430Pcs.ChannelId.BMS_MAX_CELL_TEMPERATURE, MULTIPLY(0.1)) //
 								.m(SymmetricEss.ChannelId.MAX_CELL_TEMPERATURE, MULTIPLY(0.1)) //
-								.build(), //
+								.build()), //
+				new FC3ReadRegistersTask(33178, Priority.HIGH, //
 						m(EssOmni430Pcs.ChannelId.BMS_MIN_CELL_TEMPERATURE_NUMBER, new SignedWordElement(33178)), //
 						m(new SignedWordElement(33179)) //
 								.m(EssOmni430Pcs.ChannelId.BMS_MIN_CELL_TEMPERATURE, MULTIPLY(0.1)) //
@@ -237,7 +239,8 @@ public class EssOmni430PcsImpl extends AbstractOpenemsModbusComponent
 								.build()), //
 				new FC3ReadRegistersTask(33181, Priority.LOW, //
 						m(EssOmni430Pcs.ChannelId.BMS_PROTECTED_WORD, new UnsignedWordElement(33181)), //
-						m(EssOmni430Pcs.ChannelId.BMS_WARNING_WORD, new UnsignedWordElement(33182)), //
+						m(EssOmni430Pcs.ChannelId.BMS_WARNING_WORD, new UnsignedWordElement(33182))), //
+				new FC3ReadRegistersTask(33184, Priority.LOW, //
 						m(EssOmni430Pcs.ChannelId.BMS_FAULT_WORD, new UnsignedWordElement(33184))) //
 		);
 	}
