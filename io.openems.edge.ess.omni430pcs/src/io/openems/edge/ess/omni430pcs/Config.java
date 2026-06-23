@@ -22,7 +22,7 @@ import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 
 	@AttributeDefinition(//
 			name = "Invert power sign", //
-			description = "If enabled, measured and written active/reactive power signs are inverted.")
+			description = "If enabled, measured active/reactive power values are inverted for monitoring.")
 	boolean invertPowerSign() default false;
 
 	@AttributeDefinition(name = "Capacity [Wh]", description = "Nominal battery capacity")

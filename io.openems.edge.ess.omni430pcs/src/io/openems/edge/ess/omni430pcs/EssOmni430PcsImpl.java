@@ -259,7 +259,7 @@ public class EssOmni430PcsImpl extends AbstractOpenemsModbusComponent
 				new FC6WriteRegisterTask(40612,
 						m(EssOmni430Pcs.ChannelId.GRID_MODE_SWITCH, new SignedWordElement(40612))), //
 				new FC6WriteRegisterTask(40613, m(EssOmni430Pcs.ChannelId.REMOTE_ACTIVE_POWER_SETPOINT,
-						new SignedWordElement(40613), this.powerScale())) //
+						new SignedWordElement(40613), MULTIPLY(100))) //
 		);
 	}
 
