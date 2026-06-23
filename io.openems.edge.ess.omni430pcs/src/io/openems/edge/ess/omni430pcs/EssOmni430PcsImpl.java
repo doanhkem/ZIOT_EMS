@@ -25,6 +25,7 @@ import io.openems.common.exceptions.OpenemsError.OpenemsNamedException;
 import io.openems.common.exceptions.OpenemsException;
 import io.openems.edge.bridge.modbus.api.AbstractOpenemsModbusComponent;
 import io.openems.edge.bridge.modbus.api.BridgeModbus;
+import io.openems.edge.bridge.modbus.api.ElementToChannelConverter;
 import io.openems.edge.bridge.modbus.api.ModbusComponent;
 import io.openems.edge.bridge.modbus.api.ModbusProtocol;
 import io.openems.edge.bridge.modbus.api.element.SignedDoublewordElement;
@@ -148,12 +149,12 @@ public class EssOmni430PcsImpl extends AbstractOpenemsModbusComponent
 		return new ModbusProtocol(this, //
 				new FC4ReadInputRegistersTask(30021, Priority.HIGH, //
 						m(new SignedWordElement(30021)) //
-								.m(EssOmni430Pcs.ChannelId.SYSTEM_OUTPUT_POWER, MULTIPLY(100)) //
-								.m(SymmetricEss.ChannelId.ACTIVE_POWER, MULTIPLY(100)) //
+								.m(EssOmni430Pcs.ChannelId.SYSTEM_OUTPUT_POWER, this.powerScale()) //
+								.m(SymmetricEss.ChannelId.ACTIVE_POWER, this.powerScale()) //
 								.build()), //
 				new FC4ReadInputRegistersTask(30024, Priority.HIGH, //
 						m(new SignedWordElement(30024)) //
-								.m(SymmetricEss.ChannelId.REACTIVE_POWER, MULTIPLY(100)) //
+								.m(SymmetricEss.ChannelId.REACTIVE_POWER, this.powerScale()) //
 								.build()), //
 				new FC4ReadInputRegistersTask(30037, Priority.HIGH, //
 						m(EssOmni430Pcs.ChannelId.SYSTEM_SOC, new SignedWordElement(30037))), //
@@ -182,9 +183,9 @@ public class EssOmni430PcsImpl extends AbstractOpenemsModbusComponent
 								.build()
 								.onUpdateCallback(this::updateGridMode)), //
 				new FC4ReadInputRegistersTask(32520, Priority.HIGH, //
-						m(EssOmni430Pcs.ChannelId.PCS_ACTIVE_POWER, new SignedWordElement(32520), MULTIPLY(100))), //
+						m(EssOmni430Pcs.ChannelId.PCS_ACTIVE_POWER, new SignedWordElement(32520), this.powerScale())), //
 				new FC4ReadInputRegistersTask(32523, Priority.HIGH, //
-						m(EssOmni430Pcs.ChannelId.PCS_REACTIVE_POWER, new SignedWordElement(32523), MULTIPLY(100))), //
+						m(EssOmni430Pcs.ChannelId.PCS_REACTIVE_POWER, new SignedWordElement(32523), this.powerScale())), //
 				new FC4ReadInputRegistersTask(32525, Priority.HIGH, //
 						m(EssOmni430Pcs.ChannelId.PCS_POWER_FACTOR, new SignedWordElement(32525)), //
 						m(EssOmni430Pcs.ChannelId.PCS_APPARENT_POWER, new SignedWordElement(32526), MULTIPLY(100)), //
@@ -258,7 +259,7 @@ public class EssOmni430PcsImpl extends AbstractOpenemsModbusComponent
 				new FC6WriteRegisterTask(40612,
 						m(EssOmni430Pcs.ChannelId.GRID_MODE_SWITCH, new SignedWordElement(40612))), //
 				new FC6WriteRegisterTask(40613, m(EssOmni430Pcs.ChannelId.REMOTE_ACTIVE_POWER_SETPOINT,
-						new SignedWordElement(40613), MULTIPLY(100))) //
+						new SignedWordElement(40613), this.powerScale())) //
 		);
 	}
 
@@ -285,6 +286,10 @@ public class EssOmni430PcsImpl extends AbstractOpenemsModbusComponent
 		this.<IntegerWriteChannel>channel(EssOmni430Pcs.ChannelId.WORKING_MODE).setNextWriteValue(300);
 		this.<IntegerWriteChannel>channel(EssOmni430Pcs.ChannelId.REMOTE_ACTIVE_POWER_SETPOINT)
 				.setNextWriteValue(activePower);
+	}
+
+	private ElementToChannelConverter powerScale() {
+		return MULTIPLY(this.config != null && this.config.invertPowerSign() ? -100 : 100);
 	}
 
 	@Override

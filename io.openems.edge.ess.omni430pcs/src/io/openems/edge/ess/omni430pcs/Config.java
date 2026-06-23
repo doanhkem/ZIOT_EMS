@@ -20,6 +20,11 @@ import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 	@AttributeDefinition(name = "Read only", description = "If enabled, no remote control registers are written")
 	boolean readOnly() default false;
 
+	@AttributeDefinition(//
+			name = "Invert power sign", //
+			description = "If enabled, measured and written active/reactive power signs are inverted.")
+	boolean invertPowerSign() default false;
+
 	@AttributeDefinition(name = "Capacity [Wh]", description = "Nominal battery capacity")
 	int capacity() default 0;
 
