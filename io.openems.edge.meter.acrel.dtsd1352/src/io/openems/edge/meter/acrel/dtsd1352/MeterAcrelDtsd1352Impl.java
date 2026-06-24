@@ -149,13 +149,13 @@ public class MeterAcrelDtsd1352Impl extends AbstractOpenemsModbusComponent
 	}
 
 	private ElectricityMeter.ChannelId forwardEnergyChannel() {
-		return this.invert ? ElectricityMeter.ChannelId.ACTIVE_PRODUCTION_ENERGY
-				: ElectricityMeter.ChannelId.ACTIVE_CONSUMPTION_ENERGY;
+		return this.invert ? ElectricityMeter.ChannelId.ACTIVE_CONSUMPTION_ENERGY
+				: ElectricityMeter.ChannelId.ACTIVE_PRODUCTION_ENERGY;
 	}
 
 	private ElectricityMeter.ChannelId reverseEnergyChannel() {
-		return this.invert ? ElectricityMeter.ChannelId.ACTIVE_CONSUMPTION_ENERGY
-				: ElectricityMeter.ChannelId.ACTIVE_PRODUCTION_ENERGY;
+		return this.invert ? ElectricityMeter.ChannelId.ACTIVE_PRODUCTION_ENERGY
+				: ElectricityMeter.ChannelId.ACTIVE_CONSUMPTION_ENERGY;
 	}
 
 	@Override

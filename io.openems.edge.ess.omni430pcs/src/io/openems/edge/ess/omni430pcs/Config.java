@@ -21,9 +21,9 @@ import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 	boolean readOnly() default false;
 
 	@AttributeDefinition(//
-			name = "Invert power sign", //
-			description = "If enabled, measured active/reactive power values are inverted for monitoring.")
-	boolean invertPowerSign() default false;
+			name = "Device active power sign", //
+			description = "Defines the sign convention of measured device active power.")
+	DeviceActivePowerSign deviceActivePowerSign() default DeviceActivePowerSign.POSITIVE_CHARGE;
 
 	@AttributeDefinition(name = "Capacity [Wh]", description = "Nominal battery capacity")
 	int capacity() default 0;
@@ -61,4 +61,9 @@ import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 	String AdjustModbus_target() default "(enabled=true)";
 
 	String webconsole_configurationFactory_nameHint() default "ESS OMNI 430 PCS [{id}]";
+}
+
+enum DeviceActivePowerSign {
+	POSITIVE_CHARGE,
+	POSITIVE_DISCHARGE
 }

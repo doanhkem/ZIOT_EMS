@@ -149,12 +149,12 @@ public class EssOmni430PcsImpl extends AbstractOpenemsModbusComponent
 		return new ModbusProtocol(this, //
 				new FC4ReadInputRegistersTask(30021, Priority.HIGH, //
 						m(new SignedWordElement(30021)) //
-								.m(EssOmni430Pcs.ChannelId.SYSTEM_OUTPUT_POWER, this.powerScale()) //
-								.m(SymmetricEss.ChannelId.ACTIVE_POWER, this.powerScale()) //
+								.m(EssOmni430Pcs.ChannelId.SYSTEM_OUTPUT_POWER, MULTIPLY(100)) //
+								.m(SymmetricEss.ChannelId.ACTIVE_POWER, this.openemsActivePowerScale()) //
 								.build()), //
 				new FC4ReadInputRegistersTask(30024, Priority.HIGH, //
 						m(new SignedWordElement(30024)) //
-								.m(SymmetricEss.ChannelId.REACTIVE_POWER, this.powerScale()) //
+								.m(SymmetricEss.ChannelId.REACTIVE_POWER, MULTIPLY(100)) //
 								.build()), //
 				new FC4ReadInputRegistersTask(30037, Priority.HIGH, //
 						m(EssOmni430Pcs.ChannelId.SYSTEM_SOC, new SignedWordElement(30037))), //
@@ -183,9 +183,9 @@ public class EssOmni430PcsImpl extends AbstractOpenemsModbusComponent
 								.build()
 								.onUpdateCallback(this::updateGridMode)), //
 				new FC4ReadInputRegistersTask(32520, Priority.HIGH, //
-						m(EssOmni430Pcs.ChannelId.PCS_ACTIVE_POWER, new SignedWordElement(32520), this.powerScale())), //
+						m(EssOmni430Pcs.ChannelId.PCS_ACTIVE_POWER, new SignedWordElement(32520), MULTIPLY(100))), //
 				new FC4ReadInputRegistersTask(32523, Priority.HIGH, //
-						m(EssOmni430Pcs.ChannelId.PCS_REACTIVE_POWER, new SignedWordElement(32523), this.powerScale())), //
+						m(EssOmni430Pcs.ChannelId.PCS_REACTIVE_POWER, new SignedWordElement(32523), MULTIPLY(100))), //
 				new FC4ReadInputRegistersTask(32525, Priority.HIGH, //
 						m(EssOmni430Pcs.ChannelId.PCS_POWER_FACTOR, new SignedWordElement(32525)), //
 						m(EssOmni430Pcs.ChannelId.PCS_APPARENT_POWER, new SignedWordElement(32526), MULTIPLY(100)), //
@@ -288,8 +288,11 @@ public class EssOmni430PcsImpl extends AbstractOpenemsModbusComponent
 				.setNextWriteValue(activePower);
 	}
 
-	private ElementToChannelConverter powerScale() {
-		return MULTIPLY(this.config != null && this.config.invertPowerSign() ? -100 : 100);
+	private ElementToChannelConverter openemsActivePowerScale() {
+		var multiplier = this.config == null || this.config.deviceActivePowerSign() == DeviceActivePowerSign.POSITIVE_CHARGE
+				? -100
+				: 100;
+		return MULTIPLY(multiplier);
 	}
 
 	@Override

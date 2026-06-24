@@ -20,6 +20,11 @@ import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 	@AttributeDefinition(name = "Read only", description = "If enabled, no remote control registers are written")
 	boolean readOnly() default false;
 
+	@AttributeDefinition(//
+			name = "Device active power sign", //
+			description = "Defines the sign convention of measured device active power.")
+	DeviceActivePowerSign deviceActivePowerSign() default DeviceActivePowerSign.POSITIVE_CHARGE;
+
 	@AttributeDefinition(name = "Capacity [Wh]", description = "Nominal battery capacity")
 	int capacity() default 0;
 
@@ -42,4 +47,9 @@ import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 	String Modbus_target() default "(enabled=true)";
 
 	String webconsole_configurationFactory_nameHint() default "ESS OMNI 261 [{id}]";
+}
+
+enum DeviceActivePowerSign {
+	POSITIVE_CHARGE,
+	POSITIVE_DISCHARGE
 }

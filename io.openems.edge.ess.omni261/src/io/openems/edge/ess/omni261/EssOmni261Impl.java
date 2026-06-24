@@ -23,6 +23,7 @@ import io.openems.common.exceptions.OpenemsError.OpenemsNamedException;
 import io.openems.common.exceptions.OpenemsException;
 import io.openems.edge.bridge.modbus.api.AbstractOpenemsModbusComponent;
 import io.openems.edge.bridge.modbus.api.BridgeModbus;
+import io.openems.edge.bridge.modbus.api.ElementToChannelConverter;
 import io.openems.edge.bridge.modbus.api.ModbusComponent;
 import io.openems.edge.bridge.modbus.api.ModbusProtocol;
 import io.openems.edge.bridge.modbus.api.element.SignedWordElement;
@@ -131,7 +132,7 @@ public class EssOmni261Impl extends AbstractOpenemsModbusComponent
 						m(EssOmni261.ChannelId.PCS_FAULT_STATUS, new UnsignedWordElement(25102)), //
 						m(new SignedWordElement(25103)) //
 								.m(EssOmni261.ChannelId.PCS_ACTIVE_POWER, MULTIPLY(100)) //
-								.m(SymmetricEss.ChannelId.ACTIVE_POWER, MULTIPLY(100)) //
+								.m(SymmetricEss.ChannelId.ACTIVE_POWER, this.openemsActivePowerScale()) //
 								.build(), //
 						m(new SignedWordElement(25104)) //
 								.m(EssOmni261.ChannelId.PCS_REACTIVE_POWER, MULTIPLY(100)) //
@@ -256,6 +257,13 @@ public class EssOmni261Impl extends AbstractOpenemsModbusComponent
 	@Override
 	public int getPowerPrecision() {
 		return 100;
+	}
+
+	private ElementToChannelConverter openemsActivePowerScale() {
+		var multiplier = this.config == null || this.config.deviceActivePowerSign() == DeviceActivePowerSign.POSITIVE_CHARGE
+				? -100
+				: 100;
+		return MULTIPLY(multiplier);
 	}
 
 	@Override
