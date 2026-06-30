@@ -8,6 +8,8 @@ import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -59,8 +61,12 @@ public class SendChannelValuesWorker {
 	private static final int SEND_VALUES_OF_ALL_CHANNELS_AFTER_SECONDS = 300; /* 5 minutes */
 	private static final long SEND_VALUES_OF_ALL_CHANNELS_AFTER_MILLIS = SEND_VALUES_OF_ALL_CHANNELS_AFTER_SECONDS
 			* 1_000L;
+	private static final String ERROR_CODE_1_CHANNEL_ID = "ErrorCode1";
+	private static final String ERROR_CODE_2_CHANNEL_ID = "ErrorCode2";
+	private static final String ERROR_CODE_3_CHANNEL_ID = "ErrorCode3";
 	private static final Set<String> INVERTER_CHANNELS = Set.of(//
-			"State", "ModbusCommunicationFailed", //
+			"State", "ModbusCommunicationFailed", ERROR_CODE_1_CHANNEL_ID, ERROR_CODE_2_CHANNEL_ID,
+			ERROR_CODE_3_CHANNEL_ID, //
 			"CurrentL1", "CurrentL2", "CurrentL3", //
 			"VoltageL1", "VoltageL2", "VoltageL3", //
 			"VoltageL1L2", "VoltageL2L3", "VoltageL3L1", //
@@ -75,23 +81,27 @@ public class SendChannelValuesWorker {
 			"PV11Current", "PV12Current", "PV13Current", "PV14Current", "PV15Current", //
 			"PV16Current", "PV17Current", "PV18Current", "PV19Current", "PV20Current");
 	private static final Set<String> METER_CHANNELS = Set.of(//
-			"State", "ModbusCommunicationFailed", //
+			"State", "ModbusCommunicationFailed", ERROR_CODE_1_CHANNEL_ID, ERROR_CODE_2_CHANNEL_ID,
+			ERROR_CODE_3_CHANNEL_ID, //
 			"VoltageL1", "VoltageL2", "VoltageL3", //
 			"VoltageL1L2", "VoltageL2L3", "VoltageL3L1", //
 			"CurrentL1", "CurrentL2", "CurrentL3", //
 			"ActivePower", "Frequency", "ReactivePower", "PowerFactor", //
 			"ActiveProductionEnergy", "ActiveConsumptionEnergy");
 	private static final Set<String> ESS_CHANNELS = Set.of(//
-			"State", "Soc", "Capacity", "GridMode", //
+			"State", ERROR_CODE_1_CHANNEL_ID, ERROR_CODE_2_CHANNEL_ID, ERROR_CODE_3_CHANNEL_ID, "Soc", "Capacity",
+			"GridMode", //
 			"ActivePower", "ReactivePower", "MaxApparentPower", //
 			"ActiveChargeEnergy", "ActiveDischargeEnergy", //
 			"MinCellVoltage", "MaxCellVoltage", "MinCellTemperature", "MaxCellTemperature");
 	private static final Set<String> BATTERY_CHANNELS = Set.of(//
-			"State", "Soc", "Capacity", "Voltage", "Current", //
+			"State", ERROR_CODE_1_CHANNEL_ID, ERROR_CODE_2_CHANNEL_ID, ERROR_CODE_3_CHANNEL_ID, "Soc", "Capacity",
+			"Voltage", "Current", //
 			"ChargeMaxCurrent", "DischargeMaxCurrent", //
 			"MinCellVoltage", "MaxCellVoltage", "MinCellTemperature", "MaxCellTemperature");
 	private static final Set<String> BATTERY_INVERTER_CHANNELS = Set.of(//
-			"State", "ActivePower", "ReactivePower", "MaxApparentPower", //
+			"State", ERROR_CODE_1_CHANNEL_ID, ERROR_CODE_2_CHANNEL_ID, ERROR_CODE_3_CHANNEL_ID, "ActivePower",
+			"ReactivePower", "MaxApparentPower", //
 			"Voltage", "Current", "DcVoltage", "DcCurrent", "DcPower");
 	private static final Set<String> SUM_CHANNELS = Set.of(//
 			"State", //
@@ -120,6 +130,8 @@ public class SendChannelValuesWorker {
 	private long lastSendValuesOfAllChannelsBucketStart = Long.MIN_VALUE;
 
 	private Instant lastSendAggregatedDataTimestamp;
+
+	private final Map<String, List<JsonElement>> lastErrorCodes = new HashMap<>();
 
 	protected SendChannelValuesWorker(ControllerApiBackendImpl parent) {
 		this.parent = parent;
@@ -152,8 +164,12 @@ public class SendChannelValuesWorker {
 		final var enabledComponents = this.parent.componentManager.getEnabledComponents();
 		final var allValues = this.collectData(enabledComponents);
 		final var aggregatedValues = this.collectAggregatedData(now, enabledComponents);
+		final var changedErrorCodes = this.collectChangedErrorCodes(enabledComponents);
 
 		this.executor.execute(new SendTask(this, now.toInstant(), allValues));
+		if (!changedErrorCodes.isEmpty()) {
+			this.executor.execute(new SendImmediateErrorTask(this, now.toInstant(), changedErrorCodes));
+		}
 		if (aggregatedValues != null && !aggregatedValues.isEmpty()) {
 			aggregatedValues.rowMap().forEach((timestamp, data) -> {
 				this.aggregatedExecutor.schedule(
@@ -215,11 +231,87 @@ public class SendChannelValuesWorker {
 
 	@SuppressWarnings("deprecation")
 	protected static JsonElement getChannelValue(OpenemsComponent component, String channelId) {
+		final var errorCodeIndex = getErrorCodeIndex(channelId);
+		if (errorCodeIndex >= 0) {
+			return getErrorCodes(component).get(errorCodeIndex);
+		}
 		final var channel = component._channel(channelId);
 		if (channel == null || channel.channelDoc().getAccessMode() == AccessMode.WRITE_ONLY) {
 			return JsonNull.INSTANCE;
 		}
 		return normalizeDeviceValue(channel.channelDoc().getUnit(), channel.value().asJson());
+	}
+
+	private Map<String, JsonElement> collectChangedErrorCodes(List<OpenemsComponent> enabledComponents) {
+		final var currentComponents = new HashSet<String>();
+		final var result = new HashMap<String, JsonElement>();
+		for (var component : enabledComponents) {
+			if (getDeviceChannels(component.id()) == null) {
+				continue;
+			}
+			currentComponents.add(component.id());
+			final var errorCodes = getErrorCodes(component);
+			final var previous = this.lastErrorCodes.put(component.id(), errorCodes);
+			if (previous == null ? hasNonZeroNumber(errorCodes) : !previous.equals(errorCodes)) {
+				for (var i = 0; i < errorCodes.size(); i++) {
+					result.put(component.id() + "/ErrorCode" + (i + 1), errorCodes.get(i));
+				}
+			}
+		}
+		this.lastErrorCodes.keySet().removeIf(componentId -> !currentComponents.contains(componentId));
+		return result;
+	}
+
+	private static int getErrorCodeIndex(String channelId) {
+		return switch (channelId) {
+		case ERROR_CODE_1_CHANNEL_ID -> 0;
+		case ERROR_CODE_2_CHANNEL_ID -> 1;
+		case ERROR_CODE_3_CHANNEL_ID -> 2;
+		default -> -1;
+		};
+	}
+
+	private static List<JsonElement> getErrorCodes(OpenemsComponent component) {
+		final var result = new ArrayList<JsonElement>(List.of(new JsonPrimitive(0.0), new JsonPrimitive(0.0),
+				new JsonPrimitive(0.0)));
+		final var alarmChannels = component.channels().stream() //
+				.filter(channel -> isAlarmCodeChannel(channel) //
+						&& channel.channelDoc().getAccessMode() != AccessMode.WRITE_ONLY) //
+				.sorted((c1, c2) -> c1.channelId().id().compareTo(c2.channelId().id())) //
+				.limit(result.size()) //
+				.toList();
+		for (var i = 0; i < alarmChannels.size(); i++) {
+			result.set(i, normalizeErrorCodeValue(alarmChannels.get(i)));
+		}
+		return result;
+	}
+
+	private static JsonElement normalizeErrorCodeValue(Channel<?> channel) {
+		final var value = normalizeDeviceValue(channel.channelDoc().getUnit(), channel.value().asJson());
+		if (!value.isJsonPrimitive() || !value.getAsJsonPrimitive().isNumber()) {
+			return new JsonPrimitive(0.0);
+		}
+		return value;
+	}
+
+	private static boolean isAlarmCodeChannel(Channel<?> channel) {
+		final var channelId = channel.channelId().id().toLowerCase();
+		return channelId.contains("fault") //
+				|| channelId.contains("alarm") //
+				|| channelId.contains("warning") //
+				|| channelId.contains("error") //
+				|| channelId.contains("protected");
+	}
+
+	private static boolean hasNonZeroNumber(List<JsonElement> values) {
+		return values.stream().anyMatch(SendChannelValuesWorker::isNonZeroNumber);
+	}
+
+	private static boolean isNonZeroNumber(JsonElement value) {
+		if (!value.isJsonPrimitive() || !value.getAsJsonPrimitive().isNumber()) {
+			return false;
+		}
+		return Double.compare(value.getAsDouble(), 0.0) != 0;
 	}
 
 	protected static JsonElement normalizeDeviceValue(Unit unit, JsonElement value) {
@@ -457,6 +549,31 @@ public class SendChannelValuesWorker {
 			if (this.parent.parent.websocket.sendMessage(message)) {
 				this.parent.lastSendValuesOfAllChannelsBucketStart = bucketStart;
 			}
+		}
+	}
+
+	private static class SendImmediateErrorTask implements Runnable {
+
+		private final SendChannelValuesWorker parent;
+		private final Instant timestamp;
+		private final Map<String, JsonElement> changedErrorCodes;
+
+		public SendImmediateErrorTask(SendChannelValuesWorker parent, Instant timestamp,
+				Map<String, JsonElement> changedErrorCodes) {
+			this.parent = parent;
+			this.timestamp = timestamp;
+			this.changedErrorCodes = changedErrorCodes;
+		}
+
+		@Override
+		public void run() {
+			final var message = new TimestampedDataNotification();
+			message.add(this.timestamp.toEpochMilli(), this.changedErrorCodes);
+
+			this.parent.parent.logInfo(this.parent.log, "BACKEND_ERROR_PAYLOAD=" + message.getParams());
+
+			final var wasSent = this.parent.parent.websocket.sendMessage(message);
+			this.parent.parent.getUnableToSendChannel().setNextValue(!wasSent);
 		}
 	}
 
