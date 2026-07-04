@@ -3,6 +3,10 @@ Bundle-Vendor: FENECON GmbH
 Bundle-License: https://opensource.org/licenses/EPL-2.0
 Bundle-Version: 1.0.0.${tstamp}
 
+Import-Package: \
+	io.openems.edge.goodwe.common.enums;resolution:=optional,\
+	*
+
 -buildpath: \
 	${buildpath},\
 	com.fazecast.jSerialComm,\

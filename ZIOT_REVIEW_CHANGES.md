@@ -77,6 +77,7 @@ The `ErrorCode1..3` fields are available for every device whose component ID mat
 | ESS/BESS | `ess*` | `ErrorCode1..3` | Uses mapped alarm/fault/warning/error/protected channels if present; otherwise `0.0` |
 | Battery | `battery*` | `ErrorCode1..3` | Uses mapped alarm/fault/warning/error/protected channels if present; otherwise `0.0` |
 | Battery inverter | `batteryInverter*` | `ErrorCode1..3` | Uses mapped alarm/fault/warning/error/protected channels if present; otherwise `0.0` |
+| Sensor | `sensor*` | `ErrorCode1..3` | Uses mapped alarm/fault/warning/error/protected channels if present; otherwise `0.0` |
 
 ### Devices with actual mapped error registers
 
@@ -85,6 +86,7 @@ The `ErrorCode1..3` fields are available for every device whose component ID mat
 | ESS OMNI 261 | `ess*` | Yes |
 | ESS OMNI 430 PCS | `ess*` | Yes |
 | ESS SMA SunnyIsland | `ess*` | Yes |
+| Sensor Huawei Irradiance | `sensor*` | Payload supported; no error registers mapped |
 
 ### Devices with default error fields only
 
@@ -98,6 +100,7 @@ These device families will still send `ErrorCode1..3`, but currently default to 
 | PV-Inverter Huawei SmartLogger | `pvInverter*` | `0.0, 0.0, 0.0` if no matching active fault channel is exposed |
 | PV-Inverter KACO/Kostal/SolarLog/AISWEI | `pvInverter*` | `0.0, 0.0, 0.0` if no matching numeric error channel is exposed |
 | Meter Acrel/Chint/Eastron/Janitza/Phoenix/Schneider/Selec/SMA | `meter*` | `0.0, 0.0, 0.0` unless driver exposes matching numeric error channel |
+| Sensor Huawei Irradiance | `sensor*` | `0.0, 0.0, 0.0` |
 
 ## Payload Field Samples
 
@@ -215,6 +218,54 @@ batteryInverter0/DcVoltage
 batteryInverter0/DcCurrent
 batteryInverter0/DcPower
 ```
+
+### Sensor payload fields
+
+Example component: `sensor0`
+
+```text
+sensor0/State
+sensor0/ModbusCommunicationFailed
+sensor0/ErrorCode1
+sensor0/ErrorCode2
+sensor0/ErrorCode3
+sensor0/DailyIrradiation
+sensor0/TotalIrradiance
+```
+
+## Sensor Huawei Irradiance
+
+PID:
+
+```text
+Sensor.Huawei.Irradiance
+```
+
+Bundle:
+
+```text
+io.openems.edge.sensor.huawei.irradiance
+```
+
+ConfigMgr name:
+
+```text
+Sensor Huawei Irradiance
+```
+
+Mapped Modbus registers:
+
+| Edge channel | Register | Modbus function | Type | Scale | BE field |
+|---|---:|---|---|---:|---|
+| `DAILY_IRRADIATION` | `40043` | FC3 Holding Registers | `uint32` | `0.001` | `sensor*/DailyIrradiation` |
+| `TOTAL_IRRADIANCE` | `40035` | FC3 Holding Registers | `uint16` | `0.1` | `sensor*/TotalIrradiance` |
+
+Units are documented in channel text:
+
+| BE field | Unit |
+|---|---|
+| `sensor*/DailyIrradiation` | `kWh/m2` |
+| `sensor*/TotalIrradiance` | `W/m2` |
 
 ### Sum payload fields
 

@@ -103,6 +103,10 @@ public class SendChannelValuesWorker {
 			"State", ERROR_CODE_1_CHANNEL_ID, ERROR_CODE_2_CHANNEL_ID, ERROR_CODE_3_CHANNEL_ID, "ActivePower",
 			"ReactivePower", "MaxApparentPower", //
 			"Voltage", "Current", "DcVoltage", "DcCurrent", "DcPower");
+	private static final Set<String> SENSOR_CHANNELS = Set.of(//
+			"State", "ModbusCommunicationFailed", ERROR_CODE_1_CHANNEL_ID, ERROR_CODE_2_CHANNEL_ID,
+			ERROR_CODE_3_CHANNEL_ID, //
+			"DailyIrradiation", "TotalIrradiance");
 	private static final Set<String> SUM_CHANNELS = Set.of(//
 			"State", //
 			"ProductionActivePower", "ProductionActiveEnergy", //
@@ -225,6 +229,9 @@ public class SendChannelValuesWorker {
 		}
 		if (id.startsWith("battery")) {
 			return BATTERY_CHANNELS;
+		}
+		if (id.startsWith("sensor")) {
+			return SENSOR_CHANNELS;
 		}
 		return null;
 	}

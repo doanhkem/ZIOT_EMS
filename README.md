@@ -1,93 +1,178 @@
-[![Build Status](https://github.com/OpenEMS/openems/actions/workflows/build.yml/badge.svg)](https://github.com/OpenEMS/openems/actions/workflows/build.yml)
-[![Gitpod live-demo](https://img.shields.io/badge/Gitpod-live--demo-blue?logo=gitpod)](https://gitpod.io/#https://github.com/OpenEMS/openems/tree/main)
-[![Cite via Zenodo](https://zenodo.org/badge/DOI/10.5281/zenodo.4440884.svg)](https://doi.org/10.5281/zenodo.4440883)
-[![codecov](https://codecov.io/gh/openems/openems/graph/badge.svg?token=xliIughqt1)](https://codecov.io/gh/openems/openems)
+# ZIOT Edge
 
-<h1 align="center">
-  <img src="./doc/modules/ROOT/assets/images/OpenEMS-Logo.png" alt="the Feneco - OpenEMS Logo" width="200"></a>
-  <br/>Open Source Energy Management System
-</h1>
+**ZIOT Edge by DoanhGn** là bản OpenEMS Edge được tối giản và tùy biến cho hệ sinh thái ZIOT. Mục tiêu của bản này là giữ lại phần lõi Edge, API, controller cần thiết và gom cấu hình thiết bị về một nhóm `ZIOT Generic`, thay vì đóng gói hàng loạt driver/vendor riêng lẻ.
 
-OpenEMS - the Open Source Energy Management System - is a modular platform for energy management applications. It was developed around the requirements of monitoring, controlling, and integrating energy storage together with renewable energy sources and complementary devices and services like electric vehicle charging stations, heat-pumps, electrolysers, time-of-use electricity tariffs and more.
+Repo này vẫn dựa trên OpenEMS, nhưng bản chạy chính trong dự án là ZIOT Edge.
 
-If you plan to use OpenEMS for your own projects, please consider joining the [OpenEMS Association e.V.](https://openems.io/association), a network of universities, hardware manufacturers, software companies as well as commercial and private owners, and get in touch in the [OpenEMS Community forum](https://community.openems.io). 
+## Mục Tiêu
 
-### OpenEMS in »Local Energy Management«
+- Tối giản OpenEMS Edge để dễ triển khai, dễ kiểm soát và giảm nhiễu trong Felix Web Console.
+- Dùng cấu hình mapping chung trong `outputs/deviceConfig_openems_fields.conf`.
+- Thay các driver thiết bị riêng lẻ bằng nhóm thiết bị ZIOT Generic.
+- Giữ các controller điều khiển cần thiết cho hệ PV, ESS, meter và sensor.
+- Vẫn chạy được qua OSGi/Felix Web Console như OpenEMS Edge chuẩn.
 
-![Local Energy Management](./doc/modules/ROOT/assets/images/local-energy-management.png "Local Energy Management")
+## Thiết Bị ZIOT Generic
 
-### OpenEMS in »Areal Energy Management«
+Bản ZIOT Edge hiện giữ các factory thiết bị sau:
 
-![Areal Energy Management](./doc/modules/ROOT/assets/images/areal-energy-management.png "Areal Energy Management")
+```text
+Ziot.Generic.Meter
+Ziot.Generic.PvInverter
+Ziot.Generic.Ess
+Ziot.Generic.Sensor
+```
 
-## OpenEMS IoT stack
+Các factory này đọc mapping từ:
 
-The OpenEMS 'Internet of Things' stack contains three main components:
+```text
+outputs/deviceConfig_openems_fields.conf
+```
 
- * **OpenEMS Edge** runs on site, communicates with devices and services, collects data and executes control algorithms
- * **OpenEMS UI** is the real-time user interface for web browsers and smartphones
- * **OpenEMS Backend** runs on a (cloud) server, connects the decentralized Edge systems and provides aggregation, monitoring and control via internet
+Các model được chọn bằng dropdown trong Felix Web Console, không cần nhập tay model key.
 
-## Features
+## Controller Được Giữ Lại
 
-The OpenEMS software architecture was designed to leverage some features that are required by a modern and flexible Energy Management System:
+Các controller chính vẫn được đóng gói và dùng bình thường:
 
- * Fast, PLC-like control of devices
- * Easily extendable due to the use of modern programming languages and modular architecture
- * Reusable, device independent control algorithms due to clear device abstraction
- * Wide range of supported devices and protocols
+```text
+Controller.PvInverter.FixPowerLimit
+Controller.PvInverter.SellToGridLimit
+Controller.Hybrid.PvEss
+Controller.Symmetric.LimitActivePower
+```
 
-## OpenEMS UI Screenshots
+Ý nghĩa nhanh:
 
-![OpenEMS UI Live View](./doc/modules/ROOT/assets/images/ui-live.png "OpenEMS UI Live View")
-![OpenEMS UI History View](./doc/modules/ROOT/assets/images/ui-history.png "OpenEMS UI History View")
+- `Controller.PvInverter.FixPowerLimit`: đặt cố định giới hạn công suất cho một inverter.
+- `Controller.PvInverter.SellToGridLimit`: giới hạn công suất PV theo công suất bán lên lưới.
+- `Controller.Hybrid.PvEss`: điều khiển phối hợp PV inverter và ESS.
+- `Controller.Symmetric.LimitActivePower`: giới hạn active power theo component được cấu hình.
 
-## System architecture
+## Build
 
-OpenEMS is generally used in combination with external hardware and software components
-(the exception is a simulated development environment - see [Getting Started](https://openems.github.io/openems.io/openems/latest/gettingstarted.html)). As a brief overview, this is how OpenEMS is used in production setups:
-![OpenEMS System Architecture](./doc/modules/ROOT/assets/images/system-architecture.png "OpenEMS System Architecture")
+Build cả hai bản jar:
 
-## Getting Started
+```powershell
+cd "D:\visualcode\ZIOT\EMS edeg\EMS_pro\EMS_pro"
+.\gradlew.bat buildEdge buildZiotEdge
+```
 
-* Open up a [Live-Demo on Gitpod](https://gitpod.io/#https://github.com/OpenEMS/openems)
-* Follow the [Getting Started](https://openems.github.io/openems.io/openems/latest/gettingstarted.html) guide to setup OpenEMS on your own computer
-* Please checkout our [contribution guidelines](/.github/CONTRIBUTING.md) before submitting code
+Kết quả:
 
-## Documentation
+```text
+build\openems-edge.jar
+build\ziot-edge.jar
+```
 
-* [Latest version of documentation](https://openems.github.io/openems.io/openems/latest/introduction.html)
-* [Javadoc](https://openems.github.io/openems.io/javadoc/)
+## Chạy Edge
 
-## Open Source philosophy
+Khuyến nghị chạy bản đặt tên rõ cho ZIOT:
 
-The OpenEMS project is driven by the [OpenEMS Association e.V.](https://openems.io/association), a network of users, vendors and scientific institutions from all kinds of areas like hardware manufacturers, software companies, grid operators and more. They share the common target of developing a free and open-source platform for energy management, that supports the 100 % energy transition.
+```powershell
+cd "D:\visualcode\ZIOT\EMS edeg\EMS_pro\EMS_pro"
+java -jar .\build\ziot-edge.jar
+```
 
-We are inviting third parties to use OpenEMS for their own projects and are glad to support them with their first steps. In any case if you are interested in OpenEMS we would be glad to hear from you in the [OpenEMS Community forum](https://community.openems.io).
+Hoặc chạy theo tên mặc định OpenEMS:
 
-OpenEMS development was started by [FENECON GmbH](https://www.fenecon.de), a German company specialized in manufacturing and project development of energy storage systems. It is the software stack behind [FEMS - FENECON Energy Management System](https://fenecon.de/page/fems) and widely used in private, commercial and industrial applications.
+```powershell
+cd "D:\visualcode\ZIOT\EMS edeg\EMS_pro\EMS_pro"
+java -jar .\build\openems-edge.jar
+```
 
-OpenEMS is funded by several federal and EU funding projects. If you are a developer and you would like to get hired by one of the partner companies or universities for working on OpenEMS, please send your motivation letter to info@openems.io.
+## Khác Nhau Giữa Hai Jar
 
-## Scientific Research
+`build\openems-edge.jar`
 
-If you use OpenEMS in your scientific research, please use our Zenodo Digital Object Identifier (DOI) as reference:
+- Build từ `io.openems.edge.application/EdgeApp.bndrun`.
+- Giữ tên quen thuộc của OpenEMS Edge.
+- Phù hợp khi cần thay thế hoặc chạy theo quy trình OpenEMS cũ.
 
-[![Cite via Zenodo](https://zenodo.org/badge/DOI/10.5281/zenodo.4440884.svg)](https://doi.org/10.5281/zenodo.4440883)
+`build\ziot-edge.jar`
 
-## License
+- Build từ `io.openems.edge.application/ZiotEdgeApp.bndrun`.
+- Đặt tên rõ đây là bản ZIOT Edge.
+- Khuyến nghị dùng trong triển khai ZIOT.
 
-* OpenEMS Edge 
-* OpenEMS Backend
+Hiện tại hai profile được giữ gần như giống nhau về nội dung runtime.
 
-Copyright (C) 2016-2025 OpenEMS Association e.V.
+## Felix Web Console
 
-This product includes software developed at FENECON GmbH: you can
-redistribute it and/or modify it under the terms of the [Eclipse Public License version 2.0](LICENSE-EPL-2.0). 
+Sau khi chạy Edge, mở:
 
- * OpenEMS UI
+```text
+http://localhost:8080/system/console/configMgr
+```
 
-Copyright (C) 2016-2025 OpenEMS Association e.V.
+Tại đây có thể tạo cấu hình:
 
-This product includes software developed at FENECON GmbH: you can
-redistribute it and/or modify it under the terms of the [GNU Affero General Public License version 3](LICENSE-AGPL-3.0).
+- Modbus bridge: `Bridge Modbus/TCP` hoặc `Bridge Modbus/RTU Serial`
+- Thiết bị: `ZIOT Generic Meter`, `ZIOT Generic PV-Inverter`, `ZIOT Generic ESS`, `ZIOT Generic Sensor`
+- Controller: các controller được giữ lại ở trên
+
+Ví dụ controller giới hạn công suất cố định cho inverter:
+
+```text
+Factory: Controller PV-Inverter Fix Power Limit
+Component-ID: ctrlPvInverterFixPowerLimit0
+PV-Inverter-ID: pvInverter0
+Power Limit [W]: 5000
+```
+
+## Cấu Hình Runtime
+
+OpenEMS/Felix lưu cấu hình runtime tại:
+
+```text
+C:\openems\config
+```
+
+Dữ liệu runtime mặc định:
+
+```text
+C:\openems\data
+```
+
+Khi thay đổi source hoặc bundle trong jar, cần build lại và restart Edge để Felix Web Console nhận factory mới.
+
+## Cấu Trúc Quan Trọng
+
+```text
+io.openems.edge.ziot.generic
+```
+
+Bundle thiết bị ZIOT Generic: meter, PV inverter, ESS, sensor.
+
+```text
+io.openems.edge.application/EdgeApp.bndrun
+io.openems.edge.application/ZiotEdgeApp.bndrun
+```
+
+Profile runtime quyết định bundle nào được đóng vào jar Edge.
+
+```text
+outputs/deviceConfig_openems_fields.conf
+```
+
+File mapping model/tag/register dùng cho thiết bị ZIOT Generic.
+
+## Ghi Chú Phát Triển
+
+- Source các driver/vendor OpenEMS gốc có thể vẫn còn trong repo để tham khảo hoặc build module, nhưng không mặc định đóng gói vào ZIOT Edge runtime.
+- Nếu cần thêm thiết bị mới, ưu tiên thêm model/tag vào mapping và mở rộng `io.openems.edge.ziot.generic`.
+- Nếu cần thêm controller mới, thêm bundle controller đó vào cả `EdgeApp.bndrun` và `ZiotEdgeApp.bndrun`.
+- Không nên kéo lại toàn bộ nhóm vendor device nếu mục tiêu là giữ Edge tối giản.
+
+## Nguồn Gốc Và License
+
+ZIOT Edge by DoanhGn là bản tùy biến dựa trên OpenEMS.
+
+OpenEMS là Open Source Energy Management System do OpenEMS Association e.V. phát triển, với các thành phần do FENECON GmbH đóng góp.
+
+License gốc trong repo:
+
+- OpenEMS Edge / Backend: [Eclipse Public License 2.0](LICENSE-EPL-2.0)
+- OpenEMS UI: [GNU Affero General Public License 3.0](LICENSE-AGPL-3.0)
+
+Vui lòng giữ attribution và tuân thủ license tương ứng khi phân phối hoặc triển khai.

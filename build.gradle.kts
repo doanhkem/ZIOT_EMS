@@ -40,7 +40,8 @@ fun Project.registerAppJarBuildTask(
 	generatedJarRelativePath: String,
 	outputProperty: String,
 	outputEnvVar: String,
-	defaultOutputFileName: String
+	defaultOutputFileName: String,
+	runResolve: Boolean = true
 ) {
 	tasks.register(taskName) {
 		group = "OpenEMS-Build"
@@ -48,14 +49,18 @@ fun Project.registerAppJarBuildTask(
 
 		val assemble = tasks.named(assembleTaskName)
 		val export = tasks.getByPath("$appProjectPath:export.$appName")
-		val resolve = tasks.getByPath("$appProjectPath:resolve.$appName")
 
 		dependsOn(assemble)
 		dependsOn(export)
-		dependsOn(resolve)
 
-		resolve.mustRunAfter(assemble)
-		export.mustRunAfter(resolve)
+		if (runResolve) {
+			val resolve = tasks.getByPath("$appProjectPath:resolve.$appName")
+			dependsOn(resolve)
+			resolve.mustRunAfter(assemble)
+			export.mustRunAfter(resolve)
+		} else {
+			export.mustRunAfter(assemble)
+		}
 
 		/* force rebuild */
 		export.outputs.upToDateWhen { false }
@@ -252,31 +257,21 @@ registerAppJarBuildTask(
 	generatedJarRelativePath = "io.openems.edge.application/generated/distributions/executable/EdgeApp.jar",
 	outputProperty = "oems.edge.output",
 	outputEnvVar = "OEMS_EDGE_OUTPUT",
-	defaultOutputFileName = "openems-edge.jar"
+	defaultOutputFileName = "openems-edge.jar",
+	runResolve = false
 )
 
 registerAppJarBuildTask(
-	taskName = "buildBackend",
-	taskDescription = "Build a Fat-Jar for the OpenEMS-Backend into build/openems-backend.jar",
-	assembleTaskName = "assembleBackend",
-	appProjectPath = ":io.openems.backend.application",
-	appName = "BackendApp",
-	generatedJarRelativePath = "io.openems.backend.application/generated/distributions/executable/BackendApp.jar",
-	outputProperty = "oems.backend.output",
-	outputEnvVar = "OEMS_BACKEND_OUTPUT",
-	defaultOutputFileName = "openems-backend.jar"
-)
-
-registerAppJarBuildTask(
-	taskName = "buildBackendEdge",
-	taskDescription = "Build a Fat-Jar for the OpenEMS-Backend-Edge-App into build/openems-backend-edge.jar",
-	assembleTaskName = "assembleBackend",
-	appProjectPath = ":io.openems.backend.edge.application",
-	appName = "BackendEdgeApp",
-	generatedJarRelativePath = "io.openems.backend.edge.application/generated/distributions/executable/BackendEdgeApp.jar",
-	outputProperty = "oems.backend.edge.output",
-	outputEnvVar = "OEMS_BACKEND_EDGE_OUTPUT",
-	defaultOutputFileName = "openems-backend-edge.jar"
+	taskName = "buildZiotEdge",
+	taskDescription = "Build a minimal ZIOT Edge Fat-Jar into build/ziot-edge.jar",
+	assembleTaskName = "assembleEdge",
+	appProjectPath = ":io.openems.edge.application",
+	appName = "ZiotEdgeApp",
+	generatedJarRelativePath = "io.openems.edge.application/generated/distributions/executable/ZiotEdgeApp.jar",
+	outputProperty = "ziot.edge.output",
+	outputEnvVar = "ZIOT_EDGE_OUTPUT",
+	defaultOutputFileName = "ziot-edge.jar",
+	runResolve = false
 )
 
 /*
