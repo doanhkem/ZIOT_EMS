@@ -1,4 +1,4 @@
-name: Publish ZIOT Edge IOT2050 Image
+name: ZIOT EMS IOT2050
 
 on:
   workflow_dispatch:
@@ -14,8 +14,8 @@ permissions:
   packages: write
 
 jobs:
-  docker:
-    name: Build and push ARM64 image for IOT2050
+  build-and-publish:
+    name: Build and publish IOT2050 image
     runs-on: ubuntu-latest
 
     steps:
@@ -33,6 +33,21 @@ jobs:
         run: |
           chmod +x ./gradlew
           ./gradlew buildZiotEdge --console=plain --warn
+
+      - name: Verify ZIOT runtime bundles
+        run: |
+          test -f build/ziot-edge.jar
+          jar tf build/ziot-edge.jar | grep 'jar/io.openems.edge.ziot.generic.jar'
+          jar tf build/ziot-edge.jar | grep 'jar/io.openems.edge.controller.pvinverter.fixpowerlimit.jar'
+          jar tf build/ziot-edge.jar | grep 'jar/io.openems.edge.controller.pvinverter.selltogridlimit.jar'
+          jar tf build/ziot-edge.jar | grep 'jar/io.openems.edge.controller.hybrid.pvess.jar'
+
+      - name: Upload ZIOT Edge jar artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ziot-edge-iot2050
+          path: build/ziot-edge.jar
+          if-no-files-found: error
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
