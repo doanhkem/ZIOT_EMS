@@ -30,10 +30,11 @@ jobs:
         run: |
           chmod +x ./gradlew
           ./gradlew buildZiotEdge --console=plain --warn
+          cp build/ziot-edge.jar build/ziot-edge-iot2050.jar
 
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
           draft: true
           files: |
-            build/ziot-edge.jar
+            build/ziot-edge-iot2050.jar

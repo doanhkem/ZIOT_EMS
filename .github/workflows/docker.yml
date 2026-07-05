@@ -1,4 +1,4 @@
-name: Publish ZIOT Edge Docker Image
+name: Publish ZIOT Edge IOT2050 Image
 
 on:
   workflow_dispatch:
@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   docker:
-    name: Build and push Docker image
+    name: Build and push ARM64 image for IOT2050
     runs-on: ubuntu-latest
 
     steps:
@@ -64,25 +64,25 @@ jobs:
 
           OWNER="$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')"
           GHCR_IMAGE="ghcr.io/${OWNER}/ziot_ems"
-          SHA_TAG="ziot-edge-${GITHUB_SHA}"
+          SHA_TAG="ziot-edge-iot2050-${GITHUB_SHA}"
           REF_NAME="${GITHUB_REF_NAME}"
 
           {
             echo "tags<<EOF"
             echo "${GHCR_IMAGE}:${SHA_TAG}"
             if [ "${GITHUB_REF}" = "refs/heads/main" ]; then
-              echo "${GHCR_IMAGE}:ziot-edge"
+              echo "${GHCR_IMAGE}:ziot-edge-iot2050"
             fi
             if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
-              echo "${GHCR_IMAGE}:ziot-edge-${REF_NAME}"
+              echo "${GHCR_IMAGE}:ziot-edge-iot2050-${REF_NAME}"
             fi
             if [ "${DOCKERHUB_ENABLED}" = "true" ]; then
               echo "${DOCKERHUB_IMAGE}:${SHA_TAG}"
               if [ "${GITHUB_REF}" = "refs/heads/main" ]; then
-                echo "${DOCKERHUB_IMAGE}:ziot-edge"
+                echo "${DOCKERHUB_IMAGE}:ziot-edge-iot2050"
               fi
               if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
-                echo "${DOCKERHUB_IMAGE}:ziot-edge-${REF_NAME}"
+                echo "${DOCKERHUB_IMAGE}:ziot-edge-iot2050-${REF_NAME}"
               fi
             fi
             echo "EOF"
@@ -90,18 +90,18 @@ jobs:
 
           {
             echo "labels<<EOF"
-            echo "org.opencontainers.image.title=ZIOT Edge"
-            echo "org.opencontainers.image.description=Minimal ZIOT EMS Edge runtime"
+            echo "org.opencontainers.image.title=ZIOT Edge IOT2050"
+            echo "org.opencontainers.image.description=Minimal ZIOT EMS Edge runtime for Siemens IOT2050 ARM64"
             echo "org.opencontainers.image.vendor=ZIOT by DoanhGn"
             echo "EOF"
           } >> "${GITHUB_OUTPUT}"
 
-      - name: Build and push Docker image
+      - name: Build and push IOT2050 Docker image
         uses: docker/build-push-action@v6
         with:
           context: .
           file: .github/docker/ziot-edge.Dockerfile
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/arm64
           push: true
           tags: ${{ steps.docker_tags.outputs.tags }}
           labels: ${{ steps.docker_tags.outputs.labels }}

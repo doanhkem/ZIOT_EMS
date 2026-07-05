@@ -1,0 +1,12 @@
+services:
+  ziot-edge:
+    image: doanhnguyen01/ziot:ziot-edge-iot2050
+    container_name: ziot-edge
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      JAVA_OPTS: "-Xms128m -Xmx512m"
+    volumes:
+      - /opt/openems-edge/config:/opt/openems-edge/config
+      - /opt/openems-edge/data:/opt/openems-edge/data
+      - /opt/openems-edge/outputs:/opt/openems-edge/outputs

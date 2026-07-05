@@ -1,13 +1,17 @@
 FROM eclipse-temurin:21-jre
 
-WORKDIR /opt/ziot-edge
+WORKDIR /opt/openems-edge
 
-COPY build/ziot-edge.jar /opt/ziot-edge/ziot-edge.jar
+COPY build/ziot-edge.jar /opt/openems-edge/ziot-edge.jar
+COPY outputs/ /opt/openems-edge/defaults/outputs/
+COPY .github/docker/entrypoint.sh /usr/local/bin/ziot-edge-entrypoint.sh
 
-RUN mkdir -p /opt/ziot-edge/config /opt/ziot-edge/data
+RUN mkdir -p /opt/openems-edge/config /opt/openems-edge/data /opt/openems-edge/outputs \
+	&& sed -i 's/\r$//' /usr/local/bin/ziot-edge-entrypoint.sh \
+	&& chmod +x /usr/local/bin/ziot-edge-entrypoint.sh
 
 EXPOSE 8080
 
-VOLUME ["/opt/ziot-edge/config", "/opt/ziot-edge/data"]
+VOLUME ["/opt/openems-edge/config", "/opt/openems-edge/data", "/opt/openems-edge/outputs"]
 
-ENTRYPOINT ["java", "-Dfelix.cm.dir=/opt/ziot-edge/config", "-Dopenems.data.dir=/opt/ziot-edge/data", "-Dorg.osgi.service.http.port=8080", "-jar", "/opt/ziot-edge/ziot-edge.jar"]
+ENTRYPOINT ["/usr/local/bin/ziot-edge-entrypoint.sh"]

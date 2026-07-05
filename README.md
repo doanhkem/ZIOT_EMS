@@ -1,20 +1,60 @@
 # ZIOT Edge
 
-**ZIOT Edge by DoanhGn** là bản OpenEMS Edge được tối giản và tùy biến cho hệ sinh thái ZIOT. Mục tiêu của bản này là giữ lại phần lõi Edge, API, controller cần thiết và gom cấu hình thiết bị về một nhóm `ZIOT Generic`, thay vì đóng gói hàng loạt driver/vendor riêng lẻ.
+**ZIOT Edge by DoanhGn** là bản OpenEMS Edge được tối giản cho hệ sinh thái ZIOT và tối ưu để triển khai trên **Siemens IOT2050** bằng Docker container ARM64.
 
-Repo này vẫn dựa trên OpenEMS, nhưng bản chạy chính trong dự án là ZIOT Edge.
+Mục tiêu chính: pull image về IOT2050 là chạy được, không cần cài Java trên máy host.
 
-## Mục Tiêu
+## Chạy Trên IOT2050
 
-- Tối giản OpenEMS Edge để dễ triển khai, dễ kiểm soát và giảm nhiễu trong Felix Web Console.
-- Dùng cấu hình mapping chung trong `outputs/deviceConfig_openems_fields.conf`.
-- Thay các driver thiết bị riêng lẻ bằng nhóm thiết bị ZIOT Generic.
-- Giữ các controller điều khiển cần thiết cho hệ PV, ESS, meter và sensor.
-- Vẫn chạy được qua OSGi/Felix Web Console như OpenEMS Edge chuẩn.
+Trên IOT2050 chỉ cần Docker/Docker Compose. Image đã đóng sẵn Java runtime, `ziot-edge.jar` và file mapping trong `outputs/`.
+
+```bash
+mkdir -p /opt/openems-edge/config /opt/openems-edge/data /opt/openems-edge/outputs
+cd /opt/openems-edge
+wget -O docker-compose.yml https://raw.githubusercontent.com/doanhkem/ZIOT_EMS/main/docker-compose.iot2050.yml
+docker compose pull
+docker compose up -d
+```
+
+Mở Felix Web Console:
+
+```text
+http://<IP-IOT2050>:8080/system/console/configMgr
+```
+
+Image mặc định:
+
+```text
+doanhnguyen01/ziot:ziot-edge-iot2050
+```
+
+Container dùng `network_mode: host` để Edge truy cập Modbus/TCP, Modbus/RTU gateway và Web Console trực tiếp trên mạng của IOT2050.
+
+## Cấu Hình Runtime
+
+Các thư mục trên IOT2050:
+
+```text
+/opt/openems-edge/config   Felix/OpenEMS config
+/opt/openems-edge/data     dữ liệu runtime
+/opt/openems-edge/outputs  mapping thiết bị ZIOT Generic
+```
+
+Nếu muốn chỉnh mapping thiết bị trực tiếp trên IOT2050, sửa:
+
+```text
+/opt/openems-edge/outputs/deviceConfig_openems_fields.conf
+```
+
+Sau đó restart:
+
+```bash
+docker compose restart
+```
 
 ## Thiết Bị ZIOT Generic
 
-Bản ZIOT Edge hiện giữ các factory thiết bị sau:
+Các factory thiết bị được giữ:
 
 ```text
 Ziot.Generic.Meter
@@ -29,11 +69,9 @@ Các factory này đọc mapping từ:
 outputs/deviceConfig_openems_fields.conf
 ```
 
-Các model được chọn bằng dropdown trong Felix Web Console, không cần nhập tay model key.
+Model được chọn bằng dropdown trong Felix Web Console, không cần nhập tay model key.
 
-## Controller Được Giữ Lại
-
-Các controller chính vẫn được đóng gói và dùng bình thường:
+## Controller Được Giữ
 
 ```text
 Controller.PvInverter.FixPowerLimit
@@ -44,97 +82,47 @@ Controller.Symmetric.LimitActivePower
 
 Ý nghĩa nhanh:
 
-- `Controller.PvInverter.FixPowerLimit`: đặt cố định giới hạn công suất cho một inverter.
-- `Controller.PvInverter.SellToGridLimit`: giới hạn công suất PV theo công suất bán lên lưới.
+- `Controller.PvInverter.FixPowerLimit`: đặt giới hạn công suất cố định cho một inverter.
+- `Controller.PvInverter.SellToGridLimit`: giới hạn công suất bán lên lưới.
 - `Controller.Hybrid.PvEss`: điều khiển phối hợp PV inverter và ESS.
 - `Controller.Symmetric.LimitActivePower`: giới hạn active power theo component được cấu hình.
 
-## Build
+## Build Cho Developer
 
-Build cả hai bản jar:
+Build jar local trên máy dev:
 
 ```powershell
 cd "D:\visualcode\ZIOT\EMS edeg\EMS_pro\EMS_pro"
-.\gradlew.bat buildEdge buildZiotEdge
+.\gradlew.bat buildZiotEdge
 ```
 
 Kết quả:
 
 ```text
-build\openems-edge.jar
 build\ziot-edge.jar
 ```
 
-## Chạy Edge
+Đây là bước dành cho developer. Khi triển khai IOT2050, dùng Docker image thay vì chạy `java -jar` trên host.
 
-Khuyến nghị chạy bản đặt tên rõ cho ZIOT:
+## CI/CD
 
-```powershell
-cd "D:\visualcode\ZIOT\EMS edeg\EMS_pro\EMS_pro"
-java -jar .\build\ziot-edge.jar
-```
+GitHub Actions đang build theo target IOT2050:
 
-Hoặc chạy theo tên mặc định OpenEMS:
+- `build.yml`: build và kiểm tra `ziot-edge.jar`.
+- `docker.yml`: build image `linux/arm64` cho IOT2050 và push image.
+- `release.yml`: tạo GitHub Release draft kèm `ziot-edge-iot2050.jar`.
 
-```powershell
-cd "D:\visualcode\ZIOT\EMS edeg\EMS_pro\EMS_pro"
-java -jar .\build\openems-edge.jar
-```
-
-## Khác Nhau Giữa Hai Jar
-
-`build\openems-edge.jar`
-
-- Build từ `io.openems.edge.application/EdgeApp.bndrun`.
-- Giữ tên quen thuộc của OpenEMS Edge.
-- Phù hợp khi cần thay thế hoặc chạy theo quy trình OpenEMS cũ.
-
-`build\ziot-edge.jar`
-
-- Build từ `io.openems.edge.application/ZiotEdgeApp.bndrun`.
-- Đặt tên rõ đây là bản ZIOT Edge.
-- Khuyến nghị dùng trong triển khai ZIOT.
-
-Hiện tại hai profile được giữ gần như giống nhau về nội dung runtime.
-
-## Felix Web Console
-
-Sau khi chạy Edge, mở:
+DockerHub image:
 
 ```text
-http://localhost:8080/system/console/configMgr
+doanhnguyen01/ziot:ziot-edge-iot2050
 ```
 
-Tại đây có thể tạo cấu hình:
-
-- Modbus bridge: `Bridge Modbus/TCP` hoặc `Bridge Modbus/RTU Serial`
-- Thiết bị: `ZIOT Generic Meter`, `ZIOT Generic PV-Inverter`, `ZIOT Generic ESS`, `ZIOT Generic Sensor`
-- Controller: các controller được giữ lại ở trên
-
-Ví dụ controller giới hạn công suất cố định cho inverter:
+GHCR image:
 
 ```text
-Factory: Controller PV-Inverter Fix Power Limit
-Component-ID: ctrlPvInverterFixPowerLimit0
-PV-Inverter-ID: pvInverter0
-Power Limit [W]: 5000
+ghcr.io/doanhkem/ziot_ems:ziot-edge-iot2050
 ```
-
-## Cấu Hình Runtime
-
-OpenEMS/Felix lưu cấu hình runtime tại:
-
-```text
-C:\openems\config
-```
-
-Dữ liệu runtime mặc định:
-
-```text
-C:\openems\data
-```
-
-Khi thay đổi source hoặc bundle trong jar, cần build lại và restart Edge để Felix Web Console nhận factory mới.
 
 ## Cấu Trúc Quan Trọng
 
@@ -145,11 +133,10 @@ io.openems.edge.ziot.generic
 Bundle thiết bị ZIOT Generic: meter, PV inverter, ESS, sensor.
 
 ```text
-io.openems.edge.application/EdgeApp.bndrun
 io.openems.edge.application/ZiotEdgeApp.bndrun
 ```
 
-Profile runtime quyết định bundle nào được đóng vào jar Edge.
+Profile runtime quyết định bundle nào được đóng vào ZIOT Edge.
 
 ```text
 outputs/deviceConfig_openems_fields.conf
@@ -157,14 +144,13 @@ outputs/deviceConfig_openems_fields.conf
 
 File mapping model/tag/register dùng cho thiết bị ZIOT Generic.
 
-## Ghi Chú Phát Triển
+```text
+docker-compose.iot2050.yml
+```
 
-- Source các driver/vendor OpenEMS gốc có thể vẫn còn trong repo để tham khảo hoặc build module, nhưng không mặc định đóng gói vào ZIOT Edge runtime.
-- Nếu cần thêm thiết bị mới, ưu tiên thêm model/tag vào mapping và mở rộng `io.openems.edge.ziot.generic`.
-- Nếu cần thêm controller mới, thêm bundle controller đó vào cả `EdgeApp.bndrun` và `ZiotEdgeApp.bndrun`.
-- Không nên kéo lại toàn bộ nhóm vendor device nếu mục tiêu là giữ Edge tối giản.
+Compose file triển khai nhanh trên IOT2050.
 
-## Nguồn Gốc Và License
+## License
 
 ZIOT Edge by DoanhGn là bản tùy biến dựa trên OpenEMS.
 
@@ -174,5 +160,3 @@ License gốc trong repo:
 
 - OpenEMS Edge / Backend: [Eclipse Public License 2.0](LICENSE-EPL-2.0)
 - OpenEMS UI: [GNU Affero General Public License 3.0](LICENSE-AGPL-3.0)
-
-Vui lòng giữ attribution và tuân thủ license tương ứng khi phân phối hoặc triển khai.
