@@ -1,12 +1,48 @@
 services:
-  ziot-edge:
+  openems-edge:
     image: doanhnguyen01/ziot:ziot-edge-iot2050
-    container_name: ziot-edge
+    container_name: openems-edge
     restart: unless-stopped
     network_mode: host
+
+    devices:
+      - /dev/ttyUSB0:/dev/ttyUSB0
+
     environment:
       JAVA_OPTS: "-Xms128m -Xmx512m"
+
     volumes:
       - /opt/openems-edge/config:/opt/openems-edge/config
       - /opt/openems-edge/data:/opt/openems-edge/data
       - /opt/openems-edge/outputs:/opt/openems-edge/outputs
+
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "1m"
+        max-file: "2"
+        compress: "true"
+        mode: "non-blocking"
+        max-buffer-size: "4m"
+
+  watchtower:
+    image: containrrr/watchtower:latest
+    container_name: watchtower
+    restart: unless-stopped
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "1m"
+        max-file: "2"
+        compress: "true"
+        mode: "non-blocking"
+        max-buffer-size: "4m"
+
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+    command: --interval 60 --label-enable --cleanup

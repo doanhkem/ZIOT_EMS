@@ -28,7 +28,7 @@ Image mặc định:
 doanhnguyen01/ziot:ziot-edge-iot2050
 ```
 
-Container dùng `network_mode: host` để Edge truy cập Modbus/TCP, Modbus/RTU gateway và Web Console trực tiếp trên mạng của IOT2050.
+Compose dùng service/container `openems-edge` để tương thích cách vận hành EMS_pro cũ. Container dùng `network_mode: host`, mount `/dev/ttyUSB0` cho Modbus/RTU, bật logging rotation và có `watchtower` tự cập nhật image theo label.
 
 ## Cấu Hình Runtime
 
@@ -50,6 +50,12 @@ Sau đó restart:
 
 ```bash
 docker compose restart
+```
+
+Xem log:
+
+```bash
+docker logs -f openems-edge
 ```
 
 ## Thiết Bị ZIOT Generic
