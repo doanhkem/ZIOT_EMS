@@ -33,6 +33,13 @@ final class GenericChannelMap {
 		alias(result, "ErrorCode2", ZiotGenericPvInverter.ChannelId.FAULT_CODE_2);
 		alias(result, "ErrorCode3", ZiotGenericPvInverter.ChannelId.FAULT_CODE_3);
 		alias(result, "SetActivePowerLimit", ZiotGenericPvInverter.ChannelId.SET_ACTIVE_POWER_LIMIT);
+		alias(result, "SetActivePowerLimitKw", ZiotGenericPvInverter.ChannelId.SET_ACTIVE_POWER_LIMIT);
+		alias(result, "ActivePowerLimitKw", ZiotGenericPvInverter.ChannelId.SET_ACTIVE_POWER_LIMIT);
+		alias(result, "ActivePowerLimitFixed", ZiotGenericPvInverter.ChannelId.SET_ACTIVE_POWER_LIMIT_PERCENT);
+		alias(result, "ActivePowerAdjustmentPercent", ZiotGenericPvInverter.ChannelId.SET_ACTIVE_POWER_LIMIT_PERCENT);
+		alias(result, "PLimitPercent", ZiotGenericPvInverter.ChannelId.SET_ACTIVE_POWER_LIMIT_PERCENT);
+		alias(result, "ActivePowerLimitPercent", ZiotGenericPvInverter.ChannelId.SET_ACTIVE_POWER_LIMIT_PERCENT);
+		alias(result, "SetActivePowerLimitPercent", ZiotGenericPvInverter.ChannelId.SET_ACTIVE_POWER_LIMIT_PERCENT);
 		return result;
 	}
 
@@ -44,6 +51,10 @@ final class GenericChannelMap {
 		alias(result, "ErrorCode1", ZiotGenericEss.ChannelId.FAULT_CODE_1);
 		alias(result, "ErrorCode2", ZiotGenericEss.ChannelId.FAULT_CODE_2);
 		alias(result, "ErrorCode3", ZiotGenericEss.ChannelId.FAULT_CODE_3);
+		alias(result, "RemoteActivePowerSetpointKw", ZiotGenericEss.ChannelId.REMOTE_ACTIVE_POWER_SETPOINT);
+		alias(result, "SetActivePowerKw", ZiotGenericEss.ChannelId.SET_ACTIVE_POWER);
+		alias(result, "SetActivePowerPercent", ZiotGenericEss.ChannelId.SET_ACTIVE_POWER_PERCENT);
+		alias(result, "RemoteActivePowerSetpointPercent", ZiotGenericEss.ChannelId.REMOTE_ACTIVE_POWER_SETPOINT_PERCENT);
 		return result;
 	}
 

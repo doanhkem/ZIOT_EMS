@@ -40,6 +40,7 @@ public @interface ConfigMeter {
 	String webconsole_configurationFactory_nameHint() default "ZIOT Generic Meter [{id}]";
 
 	enum Model {
+		METER_ACREL_KACCCC("MODEL/Meter.Acrel.kacccc"), //
 		METER_ACREL_DTSD1352("MODEL/Meter.Acrel.DTSD1352"), //
 		METER_CHINT_DDSU666("MODEL/Meter.Chint.DDSU666"), //
 		METER_CHINT_DTSU666("MODEL/Meter.Chint.DTSU666"), //

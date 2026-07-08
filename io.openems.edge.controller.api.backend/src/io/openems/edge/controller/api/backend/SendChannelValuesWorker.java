@@ -89,7 +89,8 @@ public class SendChannelValuesWorker {
 			"ActivePower", "Frequency", "ReactivePower", "PowerFactor", //
 			"ActiveProductionEnergy", "ActiveConsumptionEnergy");
 	private static final Set<String> ESS_CHANNELS = Set.of(//
-			"State", ERROR_CODE_1_CHANNEL_ID, ERROR_CODE_2_CHANNEL_ID, ERROR_CODE_3_CHANNEL_ID, "Soc", "Capacity",
+			"State", ERROR_CODE_1_CHANNEL_ID, ERROR_CODE_2_CHANNEL_ID, ERROR_CODE_3_CHANNEL_ID, "Soc", "Soh",
+			"Capacity",
 			"GridMode", //
 			"ActivePower", "ReactivePower", "MaxApparentPower", //
 			"ActiveChargeEnergy", "ActiveDischargeEnergy", //

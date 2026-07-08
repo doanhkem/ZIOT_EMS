@@ -3,6 +3,7 @@ package io.openems.edge.ziot.generic;
 import static io.openems.common.channel.AccessMode.READ_WRITE;
 import static io.openems.common.channel.Unit.MILLIAMPERE;
 import static io.openems.common.channel.Unit.MILLIVOLT;
+import static io.openems.common.channel.Unit.PERCENT;
 import static io.openems.common.channel.Unit.WATT;
 import static io.openems.common.types.OpenemsType.FLOAT;
 import static io.openems.common.types.OpenemsType.INTEGER;
@@ -26,7 +27,9 @@ public interface ZiotGenericPvInverter extends ManagedSymmetricPvInverter, Elect
 		POWER_FACTOR(Doc.of(FLOAT)), //
 		TMP_CAB(Doc.of(INTEGER)), //
 		OPERATING_STATUS(Doc.of(INTEGER)), //
+		RESTART_DEVICE(Doc.of(INTEGER).accessMode(READ_WRITE)), //
 		SET_ACTIVE_POWER_LIMIT(Doc.of(INTEGER).unit(WATT).accessMode(READ_WRITE)), //
+		SET_ACTIVE_POWER_LIMIT_PERCENT(Doc.of(INTEGER).unit(PERCENT).accessMode(READ_WRITE)), //
 		PV1_VOLTAGE(Doc.of(INTEGER).unit(MILLIVOLT)), //
 		PV2_VOLTAGE(Doc.of(INTEGER).unit(MILLIVOLT)), //
 		PV3_VOLTAGE(Doc.of(INTEGER).unit(MILLIVOLT)), //

@@ -51,6 +51,8 @@ public class ZiotGenericEssImpl extends AbstractOpenemsModbusComponent
 
 	private ConfigEss config;
 	private GenericMapping mapping = new GenericMapping();
+	private GenericWriteCapabilities writeCapabilities = GenericWriteCapabilities.of(this.mapping,
+			GenericChannelMap.ess());
 
 	public ZiotGenericEssImpl() {
 		super(//
@@ -72,6 +74,7 @@ public class ZiotGenericEssImpl extends AbstractOpenemsModbusComponent
 	private void activate(ComponentContext context, ConfigEss config) throws OpenemsException {
 		this.config = config;
 		this.mapping = GenericMappingLoader.load(config.mappingFile(), config.model().key());
+		this.writeCapabilities = GenericWriteCapabilities.of(this.mapping, GenericChannelMap.ess());
 		if (super.activate(context, config.id(), config.alias(), config.enabled(), config.modbusUnitId(), this.cm,
 				"Modbus", config.modbus_id())) {
 			return;
@@ -118,9 +121,10 @@ public class ZiotGenericEssImpl extends AbstractOpenemsModbusComponent
 		if (this.config == null || this.config.readOnly()) {
 			return;
 		}
-		this.<IntegerWriteChannel>channel(ZiotGenericEss.ChannelId.WORKING_MODE).setNextWriteValue(2);
-		this.<IntegerWriteChannel>channel(ZiotGenericEss.ChannelId.REMOTE_ACTIVE_POWER_SETPOINT)
-				.setNextWriteValue(activePower);
+		if (this.writeCapabilities.has(ZiotGenericEss.ChannelId.WORKING_MODE)) {
+			this.<IntegerWriteChannel>channel(ZiotGenericEss.ChannelId.WORKING_MODE).setNextWriteValue(2);
+		}
+		this.applyActivePower(activePower);
 	}
 
 	@Override
@@ -150,5 +154,41 @@ public class ZiotGenericEssImpl extends AbstractOpenemsModbusComponent
 		this._setMaxApparentPower(this.config.maxApparentPower());
 		this.getAllowedChargePowerChannel().setNextValue(-Math.abs(this.config.maxChargePower()));
 		this._setAllowedDischargePower(Math.abs(this.config.maxDischargePower()));
+	}
+
+	private void applyActivePower(int activePower) throws OpenemsNamedException {
+		if (this.writeCapabilities.has(ZiotGenericEss.ChannelId.REMOTE_ACTIVE_POWER_SETPOINT)) {
+			this.<IntegerWriteChannel>channel(ZiotGenericEss.ChannelId.REMOTE_ACTIVE_POWER_SETPOINT)
+					.setNextWriteValue(activePower);
+			return;
+		}
+		if (this.writeCapabilities.has(ZiotGenericEss.ChannelId.SET_ACTIVE_POWER)) {
+			this.<IntegerWriteChannel>channel(ZiotGenericEss.ChannelId.SET_ACTIVE_POWER).setNextWriteValue(activePower);
+			return;
+		}
+		if (this.writeCapabilities.has(ZiotGenericEss.ChannelId.REMOTE_ACTIVE_POWER_SETPOINT_PERCENT)) {
+			this.<IntegerWriteChannel>channel(ZiotGenericEss.ChannelId.REMOTE_ACTIVE_POWER_SETPOINT_PERCENT)
+					.setNextWriteValue(this.powerToPercent(activePower));
+			return;
+		}
+		if (this.writeCapabilities.has(ZiotGenericEss.ChannelId.SET_ACTIVE_POWER_PERCENT)) {
+			this.<IntegerWriteChannel>channel(ZiotGenericEss.ChannelId.SET_ACTIVE_POWER_PERCENT)
+					.setNextWriteValue(this.powerToPercent(activePower));
+			return;
+		}
+		throw new OpenemsException("No ESS active-power write register is configured.");
+	}
+
+	private int powerToPercent(int power) throws OpenemsException {
+		var maxPower = this.getMaxApparentPower().orElse(0);
+		if (maxPower <= 0) {
+			throw new OpenemsException(
+					"MaxApparentPower must be configured/read before writing an active-power percentage.");
+		}
+		return clampPercent((int) Math.round(power * 100.0 / maxPower));
+	}
+
+	private static int clampPercent(int value) {
+		return Math.max(-100, Math.min(100, value));
 	}
 }

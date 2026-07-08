@@ -1,5 +1,7 @@
 package io.openems.edge.ziot.generic;
 
+import static io.openems.common.channel.AccessMode.READ_WRITE;
+
 import io.openems.common.channel.PersistencePriority;
 import io.openems.common.channel.Unit;
 import io.openems.common.types.OpenemsType;
@@ -20,7 +22,8 @@ public interface ZiotGenericSensor extends ModbusComponent, OpenemsComponent, Mo
 		TOTAL_IRRADIANCE(Doc.of(OpenemsType.DOUBLE) //
 				.unit(Unit.NONE) //
 				.persistencePriority(PersistencePriority.HIGH) //
-				.text("Total irradiance [W/m2]"));
+				.text("Total irradiance [W/m2]")), //
+		RESTART_DEVICE(Doc.of(OpenemsType.INTEGER).accessMode(READ_WRITE));
 
 		private final Doc doc;
 

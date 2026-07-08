@@ -2,6 +2,7 @@ package io.openems.edge.ziot.generic;
 
 import java.io.FileReader;
 import java.io.IOException;
+import java.nio.ByteOrder;
 import java.nio.file.Path;
 
 import com.google.gson.JsonElement;
@@ -9,6 +10,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import io.openems.common.exceptions.OpenemsException;
+import io.openems.edge.bridge.modbus.api.element.WordOrder;
 
 final class GenericMappingLoader {
 
@@ -27,6 +29,7 @@ final class GenericMappingLoader {
 				throw new OpenemsException("Model has no tasks object: " + model);
 			}
 			var result = new GenericMapping();
+			readDataFormat(modelObject, result);
 			readRegisters(tasks, "read_registers", result.readRegisters);
 			readRegisters(tasks, "read_input_registers", result.readInputRegisters);
 			readRegisters(tasks, "watch_events", result.watchEvents);
@@ -47,6 +50,33 @@ final class GenericMappingLoader {
 			return root.getAsJsonObject(model);
 		}
 		return null;
+	}
+
+	private static void readDataFormat(JsonObject modelObject, GenericMapping result) {
+		var dataFormat = modelObject.getAsJsonObject("dataFormat");
+		if (dataFormat == null) {
+			return;
+		}
+		result.byteOrder = parseByteOrder(stringOrNull(dataFormat, "byteOrder"));
+		result.wordOrder = parseWordOrder(stringOrNull(dataFormat, "wordOrder"));
+	}
+
+	private static ByteOrder parseByteOrder(String value) {
+		if (isLittleEndian(value)) {
+			return ByteOrder.LITTLE_ENDIAN;
+		}
+		return ByteOrder.BIG_ENDIAN;
+	}
+
+	private static WordOrder parseWordOrder(String value) {
+		if (isLittleEndian(value)) {
+			return WordOrder.LSWMSW;
+		}
+		return WordOrder.MSWLSW;
+	}
+
+	private static boolean isLittleEndian(String value) {
+		return value != null && value.toLowerCase().contains("little");
 	}
 
 	private static void readRegisters(JsonObject tasks, String taskName, java.util.List<GenericMapping.Register> target) {

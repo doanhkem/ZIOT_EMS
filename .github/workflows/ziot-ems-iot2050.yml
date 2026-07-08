@@ -40,6 +40,8 @@ jobs:
         run: |
           test -f build/ziot-edge.jar
           jar tf build/ziot-edge.jar | grep 'jar/io.openems.edge.ziot.generic.jar'
+          jar tf build/ziot-edge.jar | grep 'jar/io.openems.edge.ess.cluster.jar'
+          jar tf build/ziot-edge.jar | grep 'jar/io.openems.edge.pvinverter.cluster.jar'
           jar tf build/ziot-edge.jar | grep 'jar/io.openems.edge.controller.pvinverter.fixpowerlimit.jar'
           jar tf build/ziot-edge.jar | grep 'jar/io.openems.edge.controller.pvinverter.selltogridlimit.jar'
           jar tf build/ziot-edge.jar | grep 'jar/io.openems.edge.controller.hybrid.pvess.jar'

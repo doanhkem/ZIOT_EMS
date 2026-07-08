@@ -1,7 +1,10 @@
 package io.openems.edge.ziot.generic;
 
+import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.List;
+
+import io.openems.edge.bridge.modbus.api.element.WordOrder;
 
 final class GenericMapping {
 
@@ -9,6 +12,8 @@ final class GenericMapping {
 	final List<Register> readInputRegisters = new ArrayList<>();
 	final List<Register> watchEvents = new ArrayList<>();
 	final List<Register> writeRegisters = new ArrayList<>();
+	ByteOrder byteOrder = ByteOrder.BIG_ENDIAN;
+	WordOrder wordOrder = WordOrder.MSWLSW;
 
 	static final class Register {
 		final String tagName;

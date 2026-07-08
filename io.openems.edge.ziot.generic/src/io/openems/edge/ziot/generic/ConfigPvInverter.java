@@ -29,6 +29,9 @@ public @interface ConfigPvInverter {
 	@AttributeDefinition(name = "Model")
 	Model model() default Model.PV_INVERTER_SUNGROW_SG110CX;
 
+	@AttributeDefinition(name = "Max apparent power [VA]")
+	int maxApparentPower() default 0;
+
 	String webconsole_configurationFactory_nameHint() default "ZIOT Generic PV-Inverter [{id}]";
 
 	enum Model {

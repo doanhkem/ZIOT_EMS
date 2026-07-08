@@ -15,12 +15,14 @@ import org.osgi.service.event.EventHandler;
 import org.osgi.service.metatype.annotations.Designate;
 
 import io.openems.common.channel.AccessMode;
+import io.openems.common.exceptions.OpenemsError.OpenemsNamedException;
 import io.openems.common.exceptions.OpenemsException;
 import io.openems.common.types.MeterType;
 import io.openems.edge.bridge.modbus.api.AbstractOpenemsModbusComponent;
 import io.openems.edge.bridge.modbus.api.BridgeModbus;
 import io.openems.edge.bridge.modbus.api.ModbusComponent;
 import io.openems.edge.bridge.modbus.api.ModbusProtocol;
+import io.openems.edge.common.channel.IntegerWriteChannel;
 import io.openems.edge.common.component.OpenemsComponent;
 import io.openems.edge.common.modbusslave.ModbusSlave;
 import io.openems.edge.common.modbusslave.ModbusSlaveTable;
@@ -41,7 +43,10 @@ public class ZiotGenericPvInverterImpl extends AbstractOpenemsModbusComponent
 	@Reference
 	private ConfigurationAdmin cm;
 
+	private ConfigPvInverter config;
 	private GenericMapping mapping = new GenericMapping();
+	private GenericWriteCapabilities writeCapabilities = GenericWriteCapabilities.of(this.mapping,
+			GenericChannelMap.pvInverter());
 
 	public ZiotGenericPvInverterImpl() {
 		super(//
@@ -61,11 +66,14 @@ public class ZiotGenericPvInverterImpl extends AbstractOpenemsModbusComponent
 
 	@Activate
 	private void activate(ComponentContext context, ConfigPvInverter config) throws OpenemsException {
+		this.config = config;
 		this.mapping = GenericMappingLoader.load(config.mappingFile(), config.model().key());
+		this.writeCapabilities = GenericWriteCapabilities.of(this.mapping, GenericChannelMap.pvInverter());
 		if (super.activate(context, config.id(), config.alias(), config.enabled(), config.modbusUnitId(), this.cm,
 				"Modbus", config.modbus_id())) {
 			return;
 		}
+		this.updateConfiguredLimits();
 	}
 
 	@Override
@@ -99,6 +107,54 @@ public class ZiotGenericPvInverterImpl extends AbstractOpenemsModbusComponent
 	@Override
 	public void handleEvent(Event event) {
 		// Generic PV profile is read-only unless a write register is configured.
+	}
+
+	@Override
+	public void setActivePowerLimit(Integer value) throws OpenemsNamedException {
+		if (value == null) {
+			return;
+		}
+		if (this.writeCapabilities.has(ManagedSymmetricPvInverter.ChannelId.ACTIVE_POWER_LIMIT)) {
+			this.getActivePowerLimitChannel().setNextWriteValue(value);
+			return;
+		}
+		if (this.writeCapabilities.has(ZiotGenericPvInverter.ChannelId.SET_ACTIVE_POWER_LIMIT)) {
+			this.<IntegerWriteChannel>channel(ZiotGenericPvInverter.ChannelId.SET_ACTIVE_POWER_LIMIT)
+					.setNextWriteValue(value);
+			return;
+		}
+		if (this.writeCapabilities.has(ZiotGenericPvInverter.ChannelId.SET_ACTIVE_POWER_LIMIT_PERCENT)) {
+			this.<IntegerWriteChannel>channel(ZiotGenericPvInverter.ChannelId.SET_ACTIVE_POWER_LIMIT_PERCENT)
+					.setNextWriteValue(this.powerToPercent(value));
+			return;
+		}
+		throw new OpenemsException("No PV active-power write register is configured.");
+	}
+
+	@Override
+	public void setActivePowerLimit(int value) throws OpenemsNamedException {
+		this.setActivePowerLimit(Integer.valueOf(value));
+	}
+
+	private int powerToPercent(int power) throws OpenemsException {
+		var maxPower = this.getMaxApparentPower().orElse(0);
+		if (maxPower <= 0) {
+			throw new OpenemsException(
+					"MaxApparentPower must be configured/read before writing an active-power percentage.");
+		}
+		return clampPercent((int) Math.round(power * 100.0 / maxPower));
+	}
+
+	private static int clampPercent(int value) {
+		return Math.max(-100, Math.min(100, value));
+	}
+
+	private void updateConfiguredLimits() {
+		if (this.config == null || this.config.maxApparentPower() <= 0) {
+			return;
+		}
+		this._setMaxApparentPower(this.config.maxApparentPower());
+		this._setMaxActivePower(this.config.maxApparentPower());
 	}
 
 	@Override

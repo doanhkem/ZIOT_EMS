@@ -5,13 +5,18 @@ import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ServiceScope;
 
+import io.openems.common.exceptions.OpenemsException;
+import io.openems.common.jsonrpc.base.GenericJsonrpcResponseSuccess;
 import io.openems.common.jsonrpc.request.ComponentJsonApiRequest;
 import io.openems.common.jsonrpc.request.CreateComponentConfigRequest;
 import io.openems.common.jsonrpc.request.DeleteComponentConfigRequest;
 import io.openems.common.jsonrpc.request.GetEdgeConfigRequest;
+import io.openems.common.jsonrpc.request.RestartDeviceRequest;
 import io.openems.common.jsonrpc.request.SetChannelValueRequest;
 import io.openems.common.jsonrpc.request.UpdateComponentConfigRequest;
 import io.openems.common.session.Role;
+import io.openems.common.types.ChannelAddress;
+import io.openems.edge.common.channel.WriteChannel;
 import io.openems.edge.common.component.ComponentManager;
 import io.openems.edge.common.jsonapi.EdgeGuards;
 import io.openems.edge.common.jsonapi.EdgeKeys;
@@ -81,6 +86,23 @@ public class ComponentConfigRequestHandler implements JsonApi {
 			final var apiWorker = call.get(API_WORKER_KEY);
 			return apiWorker.handleSetChannelValueRequest(this.componentManager, call.get(EdgeKeys.USER_KEY),
 					SetChannelValueRequest.from(call.getRequest())).get();
+		});
+
+		builder.handleRequest(RestartDeviceRequest.METHOD, endpoint -> {
+			endpoint.setDescription("Writes once to a device RestartDevice channel") //
+					.setGuards(EdgeGuards.roleIsAtleast(Role.ADMIN));
+		}, call -> {
+			var request = RestartDeviceRequest.from(call.getRequest());
+			for (var componentId : request.getComponentIds()) {
+				var channel = this.componentManager
+						.getChannel(new ChannelAddress(componentId, RestartDeviceRequest.CHANNEL_ID));
+				if (!(channel instanceof WriteChannel<?> writeChannel)) {
+					throw new OpenemsException("[" + componentId + "/" + RestartDeviceRequest.CHANNEL_ID
+							+ "] is not a Write Channel");
+				}
+				writeChannel.setNextWriteValueFromObject(request.getValue());
+			}
+			return new GenericJsonrpcResponseSuccess(request.getId());
 		});
 	}
 

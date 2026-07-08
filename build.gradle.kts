@@ -110,6 +110,32 @@ subprojects {
 		mavenCentral()
 	}
 
+	if (name == "io.openems.common") {
+		dependencies.add("compileOnly", "org.dhatim:fastexcel:0.20.1")
+		dependencies.add("compileOnly", "org.dhatim:fastexcel-reader:0.20.1")
+		dependencies.add("compileOnly", "org.java-websocket:Java-WebSocket:1.5.2")
+	}
+	if (name == "io.openems.edge.application") {
+		dependencies.add("compileOnly", "info.faljse:SDNotify:1.6")
+	}
+	if (name == "io.openems.edge.predictor.api") {
+		listOf(
+			"tribuo-core",
+			"tribuo-common-tree",
+			"tribuo-data",
+			"tribuo-math",
+			"tribuo-regression-core",
+			"tribuo-regression-tree",
+			"tribuo-util-onnx",
+			"tribuo-util-tokenization"
+		).forEach { artifact ->
+			dependencies.add("compileOnly", "org.tribuo:$artifact:4.3.2")
+		}
+	}
+	if (name == "io.openems.edge.scheduler.allalphabetically" || name == "io.openems.edge.scheduler.fixedorder") {
+		dependencies.add("compileOnly", project(":io.openems.edge.scheduler.api"))
+	}
+
 	sonarqube {
 		val scope = providers.gradleProperty("sonar.scope").orNull
 		isSkipProject =

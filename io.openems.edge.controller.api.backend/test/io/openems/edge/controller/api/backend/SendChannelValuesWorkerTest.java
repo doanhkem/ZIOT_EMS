@@ -30,6 +30,7 @@ public class SendChannelValuesWorkerTest {
 		assertTrue(SendChannelValuesWorker.getDeviceChannels("pvInverter0").contains("PV20Current"));
 		assertTrue(SendChannelValuesWorker.getDeviceChannels("meter0").contains("ActiveConsumptionEnergy"));
 		assertTrue(SendChannelValuesWorker.getDeviceChannels("ess0").contains("Soc"));
+		assertTrue(SendChannelValuesWorker.getDeviceChannels("ess0").contains("Soh"));
 		assertTrue(SendChannelValuesWorker.getDeviceChannels("_sum").contains("ProductionActivePower"));
 		assertNull(SendChannelValuesWorker.getDeviceChannels("ctrlBackend0"));
 
