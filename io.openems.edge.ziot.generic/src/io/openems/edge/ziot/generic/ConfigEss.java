@@ -32,6 +32,9 @@ public @interface ConfigEss {
 	@AttributeDefinition(name = "Read only")
 	boolean readOnly() default false;
 
+	@AttributeDefinition(name = "Active power sign convention")
+	ActivePowerSign activePowerSign() default ActivePowerSign.POSITIVE_IS_DISCHARGE;
+
 	@AttributeDefinition(name = "Capacity [Wh]")
 	int capacity() default 0;
 
@@ -63,5 +66,10 @@ public @interface ConfigEss {
 		String key() {
 			return this.key;
 		}
+	}
+
+	enum ActivePowerSign {
+		POSITIVE_IS_DISCHARGE, //
+		POSITIVE_IS_CHARGE
 	}
 }

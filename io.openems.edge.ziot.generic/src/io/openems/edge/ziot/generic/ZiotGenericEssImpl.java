@@ -1,5 +1,7 @@
 package io.openems.edge.ziot.generic;
 
+import static io.openems.edge.bridge.modbus.api.ElementToChannelConverter.INVERT_IF_TRUE;
+
 import org.osgi.service.cm.ConfigurationAdmin;
 import org.osgi.service.component.ComponentContext;
 import org.osgi.service.component.annotations.Activate;
@@ -98,6 +100,10 @@ public class ZiotGenericEssImpl extends AbstractOpenemsModbusComponent
 			io.openems.edge.common.channel.ChannelId channelId,
 			io.openems.edge.bridge.modbus.api.element.ModbusElement element,
 			io.openems.edge.bridge.modbus.api.ElementToChannelConverter converter) {
+		if (channelId == SymmetricEss.ChannelId.ACTIVE_POWER) {
+			converter = io.openems.edge.bridge.modbus.api.ElementToChannelConverter.chain(converter,
+					INVERT_IF_TRUE(this.isDevicePositiveCharge()));
+		}
 		return this.m(channelId, element, converter);
 	}
 
@@ -157,26 +163,35 @@ public class ZiotGenericEssImpl extends AbstractOpenemsModbusComponent
 	}
 
 	private void applyActivePower(int activePower) throws OpenemsNamedException {
+		var deviceActivePower = this.toDeviceActivePower(activePower);
 		if (this.writeCapabilities.has(ZiotGenericEss.ChannelId.REMOTE_ACTIVE_POWER_SETPOINT)) {
 			this.<IntegerWriteChannel>channel(ZiotGenericEss.ChannelId.REMOTE_ACTIVE_POWER_SETPOINT)
-					.setNextWriteValue(activePower);
+					.setNextWriteValue(deviceActivePower);
 			return;
 		}
 		if (this.writeCapabilities.has(ZiotGenericEss.ChannelId.SET_ACTIVE_POWER)) {
-			this.<IntegerWriteChannel>channel(ZiotGenericEss.ChannelId.SET_ACTIVE_POWER).setNextWriteValue(activePower);
+			this.<IntegerWriteChannel>channel(ZiotGenericEss.ChannelId.SET_ACTIVE_POWER).setNextWriteValue(deviceActivePower);
 			return;
 		}
 		if (this.writeCapabilities.has(ZiotGenericEss.ChannelId.REMOTE_ACTIVE_POWER_SETPOINT_PERCENT)) {
 			this.<IntegerWriteChannel>channel(ZiotGenericEss.ChannelId.REMOTE_ACTIVE_POWER_SETPOINT_PERCENT)
-					.setNextWriteValue(this.powerToPercent(activePower));
+					.setNextWriteValue(this.powerToPercent(deviceActivePower));
 			return;
 		}
 		if (this.writeCapabilities.has(ZiotGenericEss.ChannelId.SET_ACTIVE_POWER_PERCENT)) {
 			this.<IntegerWriteChannel>channel(ZiotGenericEss.ChannelId.SET_ACTIVE_POWER_PERCENT)
-					.setNextWriteValue(this.powerToPercent(activePower));
+					.setNextWriteValue(this.powerToPercent(deviceActivePower));
 			return;
 		}
 		throw new OpenemsException("No ESS active-power write register is configured.");
+	}
+
+	private int toDeviceActivePower(int openemsActivePower) {
+		return this.isDevicePositiveCharge() ? -openemsActivePower : openemsActivePower;
+	}
+
+	private boolean isDevicePositiveCharge() {
+		return this.config != null && this.config.activePowerSign() == ConfigEss.ActivePowerSign.POSITIVE_IS_CHARGE;
 	}
 
 	private int powerToPercent(int power) throws OpenemsException {
