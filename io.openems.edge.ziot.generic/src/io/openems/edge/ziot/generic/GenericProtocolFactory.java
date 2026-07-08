@@ -2,8 +2,11 @@ package io.openems.edge.ziot.generic;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
+import io.openems.common.channel.Unit;
+import io.openems.common.types.OpenemsType;
 import io.openems.edge.bridge.modbus.api.AbstractOpenemsModbusComponent;
 import io.openems.edge.bridge.modbus.api.ElementToChannelConverter;
 import io.openems.edge.bridge.modbus.api.ModbusProtocol;
@@ -55,7 +58,7 @@ final class GenericProtocolFactory {
 				continue;
 			}
 			var element = element(mapping, register);
-			var converter = converter(register);
+			var converter = converter(register, channel);
 			var mapped = mapper.map(channel, element, converter);
 			tasks.add(inputRegisters ? new FC4ReadInputRegistersTask(register.offset, Priority.HIGH, mapped)
 					: new FC3ReadRegistersTask(register.offset, Priority.HIGH, mapped));
@@ -70,7 +73,7 @@ final class GenericProtocolFactory {
 				continue;
 			}
 			var element = element(mapping, register);
-			var converter = converter(register);
+			var converter = converter(register, channel);
 			var mapped = mapper.map(channel, element, converter);
 			if (register.size.intValue() == 1 && mapped instanceof AbstractSingleWordElement<?, ?> singleWordElement) {
 				tasks.add(new FC6WriteRegisterTask(register.offset, singleWordElement));
@@ -105,10 +108,74 @@ final class GenericProtocolFactory {
 		}
 	}
 
-	private static ElementToChannelConverter converter(GenericMapping.Register register) {
-		if (register.scaleFactor == null || register.scaleFactor.intValue() == 0) {
+	private static ElementToChannelConverter converter(GenericMapping.Register register, ChannelId channel) {
+		var factor = Math.pow(10, register.scaleFactor == null ? 0 : register.scaleFactor.intValue());
+		factor *= unitFactor(register.unit, channel.doc().getUnit());
+		if (Double.compare(factor, 1.0) == 0) {
 			return ElementToChannelConverter.DIRECT_1_TO_1;
 		}
-		return ElementToChannelConverter.MULTIPLY(Math.pow(10, register.scaleFactor.intValue()));
+		if (channel.doc().getType() == OpenemsType.FLOAT || channel.doc().getType() == OpenemsType.DOUBLE) {
+			return floatingPointConverter(factor);
+		}
+		return ElementToChannelConverter.MULTIPLY(factor);
+	}
+
+	private static ElementToChannelConverter floatingPointConverter(double factor) {
+		return new ElementToChannelConverter(value -> multiplyFloatingPoint(value, factor),
+				value -> multiplyFloatingPoint(value, 1 / factor));
+	}
+
+	private static Object multiplyFloatingPoint(Object value, double factor) {
+		return switch (value) {
+		case null -> null;
+		case Boolean b -> b;
+		case Number n -> Double.valueOf(n.doubleValue() * factor);
+		case String s -> s;
+		default -> value;
+		};
+	}
+
+	private static double unitFactor(String registerUnitSymbol, Unit channelUnit) {
+		if (registerUnitSymbol == null || registerUnitSymbol.isBlank() || channelUnit == null
+				|| channelUnit == Unit.NONE) {
+			return 1.0;
+		}
+		var registerUnit = unitFromSymbol(registerUnitSymbol);
+		if (registerUnit == Unit.NONE) {
+			return 1.0;
+		}
+		var registerDiscrete = discreteUnit(registerUnit);
+		var channelDiscrete = discreteUnit(channelUnit);
+		if (baseUnit(registerDiscrete) != baseUnit(channelDiscrete)) {
+			return 1.0;
+		}
+		return Math.pow(10, scaleFactor(registerDiscrete) - scaleFactor(channelDiscrete));
+	}
+
+	private static Unit unitFromSymbol(String symbol) {
+		var normalized = symbol.trim();
+		var unit = Unit.fromSymbolOrElse(normalized, Unit.NONE);
+		if (unit != Unit.NONE) {
+			return unit;
+		}
+		return switch (normalized.toLowerCase(Locale.ROOT)) {
+		case "c", "degc", "degreecelsius" -> Unit.DEGREE_CELSIUS;
+		case "dc", "dezc", "decicelsius" -> Unit.DEZIDEGREE_CELSIUS;
+		case "kvar" -> Unit.KILOVOLT_AMPERE_REACTIVE;
+		case "kvarh" -> Unit.KILOVOLT_AMPERE_REACTIVE_HOURS;
+		default -> Unit.NONE;
+		};
+	}
+
+	private static Unit discreteUnit(Unit unit) {
+		return unit.discreteUnit == null ? unit : unit.discreteUnit;
+	}
+
+	private static Unit baseUnit(Unit unit) {
+		return unit.baseUnit == null ? unit : unit.baseUnit;
+	}
+
+	private static int scaleFactor(Unit unit) {
+		return unit.baseUnit == null ? 0 : unit.scaleFactor;
 	}
 }

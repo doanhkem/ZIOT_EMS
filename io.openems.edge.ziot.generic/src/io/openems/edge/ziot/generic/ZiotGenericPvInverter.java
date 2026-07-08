@@ -1,9 +1,10 @@
 package io.openems.edge.ziot.generic;
 
 import static io.openems.common.channel.AccessMode.READ_WRITE;
-import static io.openems.common.channel.Unit.MILLIAMPERE;
-import static io.openems.common.channel.Unit.MILLIVOLT;
+import static io.openems.common.channel.Unit.AMPERE;
+import static io.openems.common.channel.Unit.DEGREE_CELSIUS;
 import static io.openems.common.channel.Unit.PERCENT;
+import static io.openems.common.channel.Unit.VOLT;
 import static io.openems.common.channel.Unit.WATT;
 import static io.openems.common.types.OpenemsType.FLOAT;
 import static io.openems.common.types.OpenemsType.INTEGER;
@@ -25,51 +26,51 @@ public interface ZiotGenericPvInverter extends ManagedSymmetricPvInverter, Elect
 		FAULT_CODE_2(Doc.of(INTEGER)), //
 		FAULT_CODE_3(Doc.of(INTEGER)), //
 		POWER_FACTOR(Doc.of(FLOAT)), //
-		TMP_CAB(Doc.of(INTEGER)), //
+		TMP_CAB(Doc.of(FLOAT).unit(DEGREE_CELSIUS)), //
 		OPERATING_STATUS(Doc.of(INTEGER)), //
 		RESTART_DEVICE(Doc.of(INTEGER).accessMode(READ_WRITE)), //
 		SET_ACTIVE_POWER_LIMIT(Doc.of(INTEGER).unit(WATT).accessMode(READ_WRITE)), //
 		SET_ACTIVE_POWER_LIMIT_PERCENT(Doc.of(INTEGER).unit(PERCENT).accessMode(READ_WRITE)), //
-		PV1_VOLTAGE(Doc.of(INTEGER).unit(MILLIVOLT)), //
-		PV2_VOLTAGE(Doc.of(INTEGER).unit(MILLIVOLT)), //
-		PV3_VOLTAGE(Doc.of(INTEGER).unit(MILLIVOLT)), //
-		PV4_VOLTAGE(Doc.of(INTEGER).unit(MILLIVOLT)), //
-		PV5_VOLTAGE(Doc.of(INTEGER).unit(MILLIVOLT)), //
-		PV6_VOLTAGE(Doc.of(INTEGER).unit(MILLIVOLT)), //
-		PV7_VOLTAGE(Doc.of(INTEGER).unit(MILLIVOLT)), //
-		PV8_VOLTAGE(Doc.of(INTEGER).unit(MILLIVOLT)), //
-		PV9_VOLTAGE(Doc.of(INTEGER).unit(MILLIVOLT)), //
-		PV10_VOLTAGE(Doc.of(INTEGER).unit(MILLIVOLT)), //
-		PV11_VOLTAGE(Doc.of(INTEGER).unit(MILLIVOLT)), //
-		PV12_VOLTAGE(Doc.of(INTEGER).unit(MILLIVOLT)), //
-		PV13_VOLTAGE(Doc.of(INTEGER).unit(MILLIVOLT)), //
-		PV14_VOLTAGE(Doc.of(INTEGER).unit(MILLIVOLT)), //
-		PV15_VOLTAGE(Doc.of(INTEGER).unit(MILLIVOLT)), //
-		PV16_VOLTAGE(Doc.of(INTEGER).unit(MILLIVOLT)), //
-		PV17_VOLTAGE(Doc.of(INTEGER).unit(MILLIVOLT)), //
-		PV18_VOLTAGE(Doc.of(INTEGER).unit(MILLIVOLT)), //
-		PV19_VOLTAGE(Doc.of(INTEGER).unit(MILLIVOLT)), //
-		PV20_VOLTAGE(Doc.of(INTEGER).unit(MILLIVOLT)), //
-		PV1_CURRENT(Doc.of(INTEGER).unit(MILLIAMPERE)), //
-		PV2_CURRENT(Doc.of(INTEGER).unit(MILLIAMPERE)), //
-		PV3_CURRENT(Doc.of(INTEGER).unit(MILLIAMPERE)), //
-		PV4_CURRENT(Doc.of(INTEGER).unit(MILLIAMPERE)), //
-		PV5_CURRENT(Doc.of(INTEGER).unit(MILLIAMPERE)), //
-		PV6_CURRENT(Doc.of(INTEGER).unit(MILLIAMPERE)), //
-		PV7_CURRENT(Doc.of(INTEGER).unit(MILLIAMPERE)), //
-		PV8_CURRENT(Doc.of(INTEGER).unit(MILLIAMPERE)), //
-		PV9_CURRENT(Doc.of(INTEGER).unit(MILLIAMPERE)), //
-		PV10_CURRENT(Doc.of(INTEGER).unit(MILLIAMPERE)), //
-		PV11_CURRENT(Doc.of(INTEGER).unit(MILLIAMPERE)), //
-		PV12_CURRENT(Doc.of(INTEGER).unit(MILLIAMPERE)), //
-		PV13_CURRENT(Doc.of(INTEGER).unit(MILLIAMPERE)), //
-		PV14_CURRENT(Doc.of(INTEGER).unit(MILLIAMPERE)), //
-		PV15_CURRENT(Doc.of(INTEGER).unit(MILLIAMPERE)), //
-		PV16_CURRENT(Doc.of(INTEGER).unit(MILLIAMPERE)), //
-		PV17_CURRENT(Doc.of(INTEGER).unit(MILLIAMPERE)), //
-		PV18_CURRENT(Doc.of(INTEGER).unit(MILLIAMPERE)), //
-		PV19_CURRENT(Doc.of(INTEGER).unit(MILLIAMPERE)), //
-		PV20_CURRENT(Doc.of(INTEGER).unit(MILLIAMPERE));
+		PV1_VOLTAGE(Doc.of(FLOAT).unit(VOLT)), //
+		PV2_VOLTAGE(Doc.of(FLOAT).unit(VOLT)), //
+		PV3_VOLTAGE(Doc.of(FLOAT).unit(VOLT)), //
+		PV4_VOLTAGE(Doc.of(FLOAT).unit(VOLT)), //
+		PV5_VOLTAGE(Doc.of(FLOAT).unit(VOLT)), //
+		PV6_VOLTAGE(Doc.of(FLOAT).unit(VOLT)), //
+		PV7_VOLTAGE(Doc.of(FLOAT).unit(VOLT)), //
+		PV8_VOLTAGE(Doc.of(FLOAT).unit(VOLT)), //
+		PV9_VOLTAGE(Doc.of(FLOAT).unit(VOLT)), //
+		PV10_VOLTAGE(Doc.of(FLOAT).unit(VOLT)), //
+		PV11_VOLTAGE(Doc.of(FLOAT).unit(VOLT)), //
+		PV12_VOLTAGE(Doc.of(FLOAT).unit(VOLT)), //
+		PV13_VOLTAGE(Doc.of(FLOAT).unit(VOLT)), //
+		PV14_VOLTAGE(Doc.of(FLOAT).unit(VOLT)), //
+		PV15_VOLTAGE(Doc.of(FLOAT).unit(VOLT)), //
+		PV16_VOLTAGE(Doc.of(FLOAT).unit(VOLT)), //
+		PV17_VOLTAGE(Doc.of(FLOAT).unit(VOLT)), //
+		PV18_VOLTAGE(Doc.of(FLOAT).unit(VOLT)), //
+		PV19_VOLTAGE(Doc.of(FLOAT).unit(VOLT)), //
+		PV20_VOLTAGE(Doc.of(FLOAT).unit(VOLT)), //
+		PV1_CURRENT(Doc.of(FLOAT).unit(AMPERE)), //
+		PV2_CURRENT(Doc.of(FLOAT).unit(AMPERE)), //
+		PV3_CURRENT(Doc.of(FLOAT).unit(AMPERE)), //
+		PV4_CURRENT(Doc.of(FLOAT).unit(AMPERE)), //
+		PV5_CURRENT(Doc.of(FLOAT).unit(AMPERE)), //
+		PV6_CURRENT(Doc.of(FLOAT).unit(AMPERE)), //
+		PV7_CURRENT(Doc.of(FLOAT).unit(AMPERE)), //
+		PV8_CURRENT(Doc.of(FLOAT).unit(AMPERE)), //
+		PV9_CURRENT(Doc.of(FLOAT).unit(AMPERE)), //
+		PV10_CURRENT(Doc.of(FLOAT).unit(AMPERE)), //
+		PV11_CURRENT(Doc.of(FLOAT).unit(AMPERE)), //
+		PV12_CURRENT(Doc.of(FLOAT).unit(AMPERE)), //
+		PV13_CURRENT(Doc.of(FLOAT).unit(AMPERE)), //
+		PV14_CURRENT(Doc.of(FLOAT).unit(AMPERE)), //
+		PV15_CURRENT(Doc.of(FLOAT).unit(AMPERE)), //
+		PV16_CURRENT(Doc.of(FLOAT).unit(AMPERE)), //
+		PV17_CURRENT(Doc.of(FLOAT).unit(AMPERE)), //
+		PV18_CURRENT(Doc.of(FLOAT).unit(AMPERE)), //
+		PV19_CURRENT(Doc.of(FLOAT).unit(AMPERE)), //
+		PV20_CURRENT(Doc.of(FLOAT).unit(AMPERE));
 
 		private final Doc doc;
 

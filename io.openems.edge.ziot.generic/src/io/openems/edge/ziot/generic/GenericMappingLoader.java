@@ -96,6 +96,7 @@ final class GenericMappingLoader {
 				intOrNull(object, "offSet"), //
 				stringOrNull(object, "dataType"), //
 				intOrNull(object, "PF"), //
+				stringOrNull(object, "unit"), //
 				intOrNull(object, "size"));
 	}
 

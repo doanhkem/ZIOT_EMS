@@ -20,13 +20,15 @@ final class GenericMapping {
 		final Integer offset;
 		final String dataType;
 		final Integer scaleFactor;
+		final String unit;
 		final Integer size;
 
-		Register(String tagName, Integer offset, String dataType, Integer scaleFactor, Integer size) {
+		Register(String tagName, Integer offset, String dataType, Integer scaleFactor, String unit, Integer size) {
 			this.tagName = tagName;
 			this.offset = offset;
 			this.dataType = dataType == null ? null : dataType.toLowerCase();
 			this.scaleFactor = scaleFactor;
+			this.unit = unit == null ? null : unit.trim();
 			this.size = size;
 		}
 

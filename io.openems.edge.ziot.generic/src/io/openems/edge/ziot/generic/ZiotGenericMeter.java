@@ -1,8 +1,8 @@
 package io.openems.edge.ziot.generic;
 
 import static io.openems.common.channel.AccessMode.READ_WRITE;
+import static io.openems.common.channel.Unit.MILLIVOLT;
 import static io.openems.common.channel.Unit.THOUSANDTH;
-import static io.openems.common.channel.Unit.VOLT;
 import static io.openems.common.types.OpenemsType.FLOAT;
 import static io.openems.common.types.OpenemsType.INTEGER;
 
@@ -20,9 +20,9 @@ public interface ZiotGenericMeter extends ElectricityMeter, ModbusComponent, Ope
 		FAULT_CODE_3(Doc.of(INTEGER)), //
 		POWER_FACTOR(Doc.of(FLOAT)), //
 		RESTART_DEVICE(Doc.of(INTEGER).accessMode(READ_WRITE)), //
-		VOLTAGE_L1_L2(Doc.of(INTEGER).unit(VOLT)), //
-		VOLTAGE_L2_L3(Doc.of(INTEGER).unit(VOLT)), //
-		VOLTAGE_L3_L1(Doc.of(INTEGER).unit(VOLT)), //
+		VOLTAGE_L1_L2(Doc.of(INTEGER).unit(MILLIVOLT)), //
+		VOLTAGE_L2_L3(Doc.of(INTEGER).unit(MILLIVOLT)), //
+		VOLTAGE_L3_L1(Doc.of(INTEGER).unit(MILLIVOLT)), //
 		POWER_FACTOR_RAW(Doc.of(INTEGER).unit(THOUSANDTH));
 
 		private final Doc doc;
