@@ -460,7 +460,7 @@ public class SendChannelValuesWorker {
 				}
 				final var entryValue = entry.getValue().get();
 				if (((Integer) entryValue).intValue() == optionValue) {
-					return new JsonPrimitive(optionValue);
+					return new JsonPrimitive(optionValue.doubleValue());
 				}
 			}
 		}
@@ -506,12 +506,12 @@ public class SendChannelValuesWorker {
 			if (isCumulated) {
 				final var maxOpt = stream.max();
 				if (maxOpt.isPresent()) {
-					return new JsonPrimitive(maxOpt.getAsLong());
+					return new JsonPrimitive((double) maxOpt.getAsLong());
 				}
 			} else {
 				final var avgOpt = stream.average();
 				if (avgOpt.isPresent()) {
-					return new JsonPrimitive(Math.round(avgOpt.getAsDouble()));
+					return new JsonPrimitive((double) Math.round(avgOpt.getAsDouble()));
 				}
 			}
 		}

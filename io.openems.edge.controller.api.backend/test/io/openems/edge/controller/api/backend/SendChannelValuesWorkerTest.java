@@ -75,14 +75,16 @@ public class SendChannelValuesWorkerTest {
 	public void testAggregateNaturalCumulated() {
 		final var value = SendChannelValuesWorker.aggregate(true, OpenemsType.LONG, //
 				Lists.newArrayList(2, 4));
-		assertEquals(4, value.getAsLong());
+		assertEquals("4.0", value.toString());
+		assertEquals(4.0, value.getAsDouble(), 0);
 	}
 
 	@Test
 	public void testAggregateNaturalNotCumulated() {
 		final var value = SendChannelValuesWorker.aggregate(false, OpenemsType.LONG, //
 				Lists.newArrayList(2, 7));
-		assertEquals(5, value.getAsLong());
+		assertEquals("5.0", value.toString());
+		assertEquals(5.0, value.getAsDouble(), 0);
 	}
 
 	@Test
@@ -183,6 +185,7 @@ public class SendChannelValuesWorkerTest {
 		final var aggregatedValue = SendChannelValuesWorker.aggregateEnumChannel(channel, start, end);
 		assertTrue(aggregatedValue.isJsonPrimitive());
 		assertTrue(aggregatedValue.getAsJsonPrimitive().isNumber());
+		assertEquals(expectedValue.getValue() + ".0", aggregatedValue.toString());
 		assertEquals(expectedValue.getValue(), aggregatedValue.getAsInt());
 	}
 
