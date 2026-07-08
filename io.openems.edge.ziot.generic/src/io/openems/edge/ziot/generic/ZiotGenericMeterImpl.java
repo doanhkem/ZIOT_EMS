@@ -38,6 +38,8 @@ public class ZiotGenericMeterImpl extends AbstractOpenemsModbusComponent
 
 	private GenericMapping mapping = new GenericMapping();
 	private MeterType meterType = MeterType.GRID;
+	private double ctRatio = 1.0;
+	private double ptRatio = 1.0;
 
 	public ZiotGenericMeterImpl() {
 		super(//
@@ -57,6 +59,8 @@ public class ZiotGenericMeterImpl extends AbstractOpenemsModbusComponent
 	@Activate
 	private void activate(ComponentContext context, ConfigMeter config) throws OpenemsException {
 		this.meterType = config.type();
+		this.ctRatio = config.useCtRatio() ? validRatioOrDefault(config.ctRatio()) : 1.0;
+		this.ptRatio = config.usePtRatio() ? validRatioOrDefault(config.ptRatio()) : 1.0;
 		this.mapping = GenericMappingLoader.load(config.mappingFile(), config.model().key());
 		if (super.activate(context, config.id(), config.alias(), config.enabled(), config.modbusUnitId(), this.cm,
 				"Modbus", config.modbus_id())) {
@@ -72,7 +76,29 @@ public class ZiotGenericMeterImpl extends AbstractOpenemsModbusComponent
 
 	@Override
 	protected ModbusProtocol defineModbusProtocol() {
-		return GenericProtocolFactory.create(this, this.mapping, GenericChannelMap.meter(), this::map);
+		return GenericProtocolFactory.create(this, this.mapping, GenericChannelMap.meter(), this::map,
+				this::meterRatioFactor);
+	}
+
+	private static double validRatioOrDefault(double ratio) {
+		return ratio > 0 ? ratio : 1.0;
+	}
+
+	private double meterRatioFactor(GenericMapping.Register register, io.openems.edge.common.channel.ChannelId channel) {
+		var id = channel.id().toLowerCase();
+		if (id.contains("powerfactor") || id.contains("frequency")) {
+			return 1.0;
+		}
+		if (id.contains("current")) {
+			return this.ctRatio;
+		}
+		if (id.contains("voltage")) {
+			return this.ptRatio;
+		}
+		if (id.contains("power") || id.contains("energy")) {
+			return this.ctRatio * this.ptRatio;
+		}
+		return 1.0;
 	}
 
 	private io.openems.edge.bridge.modbus.api.element.ModbusElement map(

@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.BiFunction;
 
 import io.openems.common.channel.Unit;
 import io.openems.common.types.OpenemsType;
@@ -42,23 +43,30 @@ final class GenericProtocolFactory {
 
 	static ModbusProtocol create(AbstractOpenemsModbusComponent component, GenericMapping mapping,
 			Map<String, ChannelId> channels, Mapper mapper) {
+		return create(component, mapping, channels, mapper, (register, channel) -> 1.0);
+	}
+
+	static ModbusProtocol create(AbstractOpenemsModbusComponent component, GenericMapping mapping,
+			Map<String, ChannelId> channels, Mapper mapper,
+			BiFunction<GenericMapping.Register, ChannelId, Double> readFactorProvider) {
 		var tasks = new ArrayList<Task>();
-		addReadTasks(tasks, mapping, mapping.readRegisters, channels, mapper, false);
-		addReadTasks(tasks, mapping, mapping.readInputRegisters, channels, mapper, true);
-		addReadTasks(tasks, mapping, mapping.watchEvents, channels, mapper, false);
+		addReadTasks(tasks, mapping, mapping.readRegisters, channels, mapper, readFactorProvider, false);
+		addReadTasks(tasks, mapping, mapping.readInputRegisters, channels, mapper, readFactorProvider, true);
+		addReadTasks(tasks, mapping, mapping.watchEvents, channels, mapper, readFactorProvider, false);
 		addWriteTasks(tasks, mapping, mapping.writeRegisters, channels, mapper);
 		return new ModbusProtocol(component, tasks.toArray(Task[]::new));
 	}
 
 	private static void addReadTasks(List<Task> tasks, GenericMapping mapping, List<GenericMapping.Register> registers,
-			Map<String, ChannelId> channels, Mapper mapper, boolean inputRegisters) {
+			Map<String, ChannelId> channels, Mapper mapper,
+			BiFunction<GenericMapping.Register, ChannelId, Double> readFactorProvider, boolean inputRegisters) {
 		for (var register : registers) {
 			var channel = channels.get(register.tagName);
 			if (channel == null || !register.isMapped()) {
 				continue;
 			}
 			var element = element(mapping, register);
-			var converter = converter(register, channel);
+			var converter = converter(register, channel, readFactorProvider.apply(register, channel));
 			var mapped = mapper.map(channel, element, converter);
 			tasks.add(inputRegisters ? new FC4ReadInputRegistersTask(register.offset, Priority.HIGH, mapped)
 					: new FC3ReadRegistersTask(register.offset, Priority.HIGH, mapped));
@@ -73,7 +81,7 @@ final class GenericProtocolFactory {
 				continue;
 			}
 			var element = element(mapping, register);
-			var converter = converter(register, channel);
+			var converter = converter(register, channel, 1.0);
 			var mapped = mapper.map(channel, element, converter);
 			if (register.size.intValue() == 1 && mapped instanceof AbstractSingleWordElement<?, ?> singleWordElement) {
 				tasks.add(new FC6WriteRegisterTask(register.offset, singleWordElement));
@@ -108,9 +116,11 @@ final class GenericProtocolFactory {
 		}
 	}
 
-	private static ElementToChannelConverter converter(GenericMapping.Register register, ChannelId channel) {
+	private static ElementToChannelConverter converter(GenericMapping.Register register, ChannelId channel,
+			double extraFactor) {
 		var factor = Math.pow(10, register.scaleFactor == null ? 0 : register.scaleFactor.intValue());
 		factor *= unitFactor(register.unit, channel.doc().getUnit());
+		factor *= extraFactor;
 		if (Double.compare(factor, 1.0) == 0) {
 			return ElementToChannelConverter.DIRECT_1_TO_1;
 		}

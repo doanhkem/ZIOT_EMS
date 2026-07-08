@@ -19,6 +19,8 @@ final class GenericChannelMap {
 		alias(result, "ErrorCode1", ZiotGenericMeter.ChannelId.FAULT_CODE_1);
 		alias(result, "ErrorCode2", ZiotGenericMeter.ChannelId.FAULT_CODE_2);
 		alias(result, "ErrorCode3", ZiotGenericMeter.ChannelId.FAULT_CODE_3);
+		alias(result, "SetCtRatio", ZiotGenericMeter.ChannelId.SET_CT_RATIO);
+		alias(result, "SetPtRatio", ZiotGenericMeter.ChannelId.SET_PT_RATIO);
 		alias(result, "VoltageL1L2", ZiotGenericMeter.ChannelId.VOLTAGE_L1_L2);
 		alias(result, "VoltageL2L3", ZiotGenericMeter.ChannelId.VOLTAGE_L2_L3);
 		alias(result, "VoltageL3L1", ZiotGenericMeter.ChannelId.VOLTAGE_L3_L1);

@@ -25,6 +25,18 @@ public @interface ConfigMeter {
 	@AttributeDefinition(name = "Invert active/reactive power")
 	boolean invert() default false;
 
+	@AttributeDefinition(name = "Use CT ratio")
+	boolean useCtRatio() default false;
+
+	@AttributeDefinition(name = "CT ratio")
+	double ctRatio() default 1.0;
+
+	@AttributeDefinition(name = "Use PT ratio")
+	boolean usePtRatio() default false;
+
+	@AttributeDefinition(name = "PT ratio")
+	double ptRatio() default 1.0;
+
 	@AttributeDefinition(name = "Modbus-ID")
 	String modbus_id() default "modbus0";
 

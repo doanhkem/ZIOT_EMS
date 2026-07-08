@@ -20,6 +20,8 @@ public interface ZiotGenericMeter extends ElectricityMeter, ModbusComponent, Ope
 		FAULT_CODE_3(Doc.of(INTEGER)), //
 		POWER_FACTOR(Doc.of(FLOAT)), //
 		RESTART_DEVICE(Doc.of(INTEGER).accessMode(READ_WRITE)), //
+		SET_CT_RATIO(Doc.of(INTEGER).accessMode(READ_WRITE)), //
+		SET_PT_RATIO(Doc.of(INTEGER).accessMode(READ_WRITE)), //
 		VOLTAGE_L1_L2(Doc.of(INTEGER).unit(MILLIVOLT)), //
 		VOLTAGE_L2_L3(Doc.of(INTEGER).unit(MILLIVOLT)), //
 		VOLTAGE_L3_L1(Doc.of(INTEGER).unit(MILLIVOLT)), //
