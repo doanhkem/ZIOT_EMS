@@ -3,9 +3,15 @@ set -e
 
 OUTPUTS_DIR="/opt/openems-edge/outputs"
 DEFAULT_OUTPUTS_DIR="/opt/openems-edge/defaults/outputs"
+SYNC_OUTPUTS="${ZIOT_SYNC_OUTPUTS:-true}"
 
-if [ ! -f "${OUTPUTS_DIR}/deviceConfig_openems_fields.conf" ]; then
+if [ "${SYNC_OUTPUTS}" = "true" ]; then
 	mkdir -p "${OUTPUTS_DIR}"
+	if [ -f "${OUTPUTS_DIR}/deviceConfig_openems_fields.conf" ] \
+		&& ! cmp -s "${DEFAULT_OUTPUTS_DIR}/deviceConfig_openems_fields.conf" "${OUTPUTS_DIR}/deviceConfig_openems_fields.conf"; then
+		cp -a "${OUTPUTS_DIR}/deviceConfig_openems_fields.conf" \
+			"${OUTPUTS_DIR}/deviceConfig_openems_fields.conf.bak.$(date +%Y%m%d%H%M%S)"
+	fi
 	cp -a "${DEFAULT_OUTPUTS_DIR}/." "${OUTPUTS_DIR}/"
 fi
 
