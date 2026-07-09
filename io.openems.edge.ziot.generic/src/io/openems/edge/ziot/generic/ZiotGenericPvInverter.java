@@ -3,6 +3,7 @@ package io.openems.edge.ziot.generic;
 import static io.openems.common.channel.AccessMode.READ_WRITE;
 import static io.openems.common.channel.Unit.AMPERE;
 import static io.openems.common.channel.Unit.DEGREE_CELSIUS;
+import static io.openems.common.channel.Unit.MILLIVOLT;
 import static io.openems.common.channel.Unit.PERCENT;
 import static io.openems.common.channel.Unit.VOLT;
 import static io.openems.common.channel.Unit.WATT;
@@ -29,8 +30,14 @@ public interface ZiotGenericPvInverter extends ManagedSymmetricPvInverter, Elect
 		TMP_CAB(Doc.of(FLOAT).unit(DEGREE_CELSIUS)), //
 		OPERATING_STATUS(Doc.of(INTEGER)), //
 		RESTART_DEVICE(Doc.of(INTEGER).accessMode(READ_WRITE)), //
+		POWER_ON_OFF(Doc.of(INTEGER).accessMode(READ_WRITE)), //
 		SET_ACTIVE_POWER_LIMIT(Doc.of(INTEGER).unit(WATT).accessMode(READ_WRITE)), //
 		SET_ACTIVE_POWER_LIMIT_PERCENT(Doc.of(INTEGER).unit(PERCENT).accessMode(READ_WRITE)), //
+		P_LIMIT_TYPE(Doc.of(INTEGER).accessMode(READ_WRITE)), //
+		WATCH_DOG_TAG(Doc.of(INTEGER).accessMode(READ_WRITE)), //
+		VOLTAGE_L1_L2(Doc.of(INTEGER).unit(MILLIVOLT)), //
+		VOLTAGE_L2_L3(Doc.of(INTEGER).unit(MILLIVOLT)), //
+		VOLTAGE_L3_L1(Doc.of(INTEGER).unit(MILLIVOLT)), //
 		PV1_VOLTAGE(Doc.of(FLOAT).unit(VOLT)), //
 		PV2_VOLTAGE(Doc.of(FLOAT).unit(VOLT)), //
 		PV3_VOLTAGE(Doc.of(FLOAT).unit(VOLT)), //
