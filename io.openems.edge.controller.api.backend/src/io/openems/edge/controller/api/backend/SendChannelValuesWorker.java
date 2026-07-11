@@ -195,7 +195,7 @@ public class SendChannelValuesWorker {
 				}
 				for (var channelId : channels) {
 					result.put(component.id() + "/" + channelId,
-							toBackendPayloadValue(component.id(), getChannelValue(component, channelId)));
+							toBackendPayloadValue(component.id(), channelId, getChannelValue(component, channelId)));
 				}
 			}
 			return result.build();
@@ -246,11 +246,23 @@ public class SendChannelValuesWorker {
 		return normalizeDeviceValue(channel.channelDoc().getUnit(), channel.value().asJson());
 	}
 
-	protected static JsonElement toBackendPayloadValue(String componentId, JsonElement value) {
-		if (!"_sum".equals(componentId) || !value.isJsonPrimitive() || !value.getAsJsonPrimitive().isNumber()) {
+	protected static JsonElement toBackendPayloadValue(String componentId, String channelId, JsonElement value) {
+		if (!value.isJsonPrimitive() || !value.getAsJsonPrimitive().isNumber()) {
 			return value;
 		}
-		return new JsonPrimitive(Float.valueOf(value.getAsFloat()));
+		var payloadValue = value.getAsFloat();
+		if (isEssActivePowerForBackend(componentId, channelId)) {
+			payloadValue = -payloadValue;
+		}
+		if ("_sum".equals(componentId) || isEssActivePowerForBackend(componentId, channelId)) {
+			return new JsonPrimitive(Float.valueOf(payloadValue));
+		}
+		return value;
+	}
+
+	private static boolean isEssActivePowerForBackend(String componentId, String channelId) {
+		return "_sum".equals(componentId) && "EssActivePower".equals(channelId) //
+				|| componentId.toLowerCase().startsWith("ess") && "ActivePower".equals(channelId);
 	}
 
 	private Map<String, JsonElement> collectChangedErrorCodes(List<OpenemsComponent> enabledComponents) {
@@ -409,7 +421,8 @@ public class SendChannelValuesWorker {
 						}
 						final var normalizedValue = normalizeDeviceValue(channel.channelDoc().getUnit(), value);
 						table.put(timestampMillis, channel.address().toString(),
-								toBackendPayloadValue(channel.address().getComponentId(), normalizedValue));
+								toBackendPayloadValue(channel.address().getComponentId(),
+										channel.address().getChannelId(), normalizedValue));
 					} catch (IllegalArgumentException e) {
 						// unable to collect data because types are not matching the expected one
 						e.printStackTrace();

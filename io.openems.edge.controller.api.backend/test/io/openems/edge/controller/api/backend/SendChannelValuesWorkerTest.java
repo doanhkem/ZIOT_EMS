@@ -44,9 +44,22 @@ public class SendChannelValuesWorkerTest {
 
 	@Test
 	public void testSumPayloadValueUsesFloat() {
-		final var value = SendChannelValuesWorker.toBackendPayloadValue("_sum", new JsonPrimitive(12.34));
+		final var value = SendChannelValuesWorker.toBackendPayloadValue("_sum", "EssSoc", new JsonPrimitive(12.34));
 		assertEquals(Float.class, value.getAsJsonPrimitive().getAsNumber().getClass());
 		assertEquals(12.34F, value.getAsFloat(), 0);
+	}
+
+	@Test
+	public void testEssActivePowerPayloadUsesChargePositiveConvention() {
+		final var essValue = SendChannelValuesWorker.toBackendPayloadValue("ess0", "ActivePower",
+				new JsonPrimitive(-11000));
+		assertEquals(Float.class, essValue.getAsJsonPrimitive().getAsNumber().getClass());
+		assertEquals(11000F, essValue.getAsFloat(), 0);
+
+		final var sumValue = SendChannelValuesWorker.toBackendPayloadValue("_sum", "EssActivePower",
+				new JsonPrimitive(-11000));
+		assertEquals(Float.class, sumValue.getAsJsonPrimitive().getAsNumber().getClass());
+		assertEquals(11000F, sumValue.getAsFloat(), 0);
 	}
 
 	@Test
