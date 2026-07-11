@@ -109,12 +109,7 @@ public class SendChannelValuesWorker {
 			ERROR_CODE_3_CHANNEL_ID, //
 			"DailyIrradiation", "TotalIrradiance");
 	private static final Set<String> SUM_CHANNELS = Set.of(//
-			"State", //
-			"ProductionActivePower", "ProductionActiveEnergy", //
-			"ConsumptionActivePower", "ConsumptionActiveEnergy", //
-			"GridActivePower", "GridBuyActiveEnergy", "GridSellActiveEnergy", //
-			"EssActivePower", "EssSoc", "EssCapacity", //
-			"EssActiveChargeEnergy", "EssActiveDischargeEnergy");
+			"ProductionActivePower", "GridActivePower", "EssActivePower", "EssSoc");
 
 	private final Logger log = LoggerFactory.getLogger(SendChannelValuesWorker.class);
 
@@ -199,7 +194,8 @@ public class SendChannelValuesWorker {
 					continue;
 				}
 				for (var channelId : channels) {
-					result.put(component.id() + "/" + channelId, getChannelValue(component, channelId));
+					result.put(component.id() + "/" + channelId,
+							toBackendPayloadValue(component.id(), getChannelValue(component, channelId)));
 				}
 			}
 			return result.build();
@@ -248,6 +244,13 @@ public class SendChannelValuesWorker {
 			return JsonNull.INSTANCE;
 		}
 		return normalizeDeviceValue(channel.channelDoc().getUnit(), channel.value().asJson());
+	}
+
+	protected static JsonElement toBackendPayloadValue(String componentId, JsonElement value) {
+		if (!"_sum".equals(componentId) || !value.isJsonPrimitive() || !value.getAsJsonPrimitive().isNumber()) {
+			return value;
+		}
+		return new JsonPrimitive(Float.valueOf(value.getAsFloat()));
 	}
 
 	private Map<String, JsonElement> collectChangedErrorCodes(List<OpenemsComponent> enabledComponents) {
@@ -404,8 +407,9 @@ public class SendChannelValuesWorker {
 						if (!sendAllChannels && value.isJsonNull()) {
 							return;
 						}
+						final var normalizedValue = normalizeDeviceValue(channel.channelDoc().getUnit(), value);
 						table.put(timestampMillis, channel.address().toString(),
-								normalizeDeviceValue(channel.channelDoc().getUnit(), value));
+								toBackendPayloadValue(channel.address().getComponentId(), normalizedValue));
 					} catch (IllegalArgumentException e) {
 						// unable to collect data because types are not matching the expected one
 						e.printStackTrace();

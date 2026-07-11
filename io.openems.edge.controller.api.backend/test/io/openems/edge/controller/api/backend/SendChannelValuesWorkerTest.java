@@ -32,10 +32,21 @@ public class SendChannelValuesWorkerTest {
 		assertTrue(SendChannelValuesWorker.getDeviceChannels("ess0").contains("Soc"));
 		assertTrue(SendChannelValuesWorker.getDeviceChannels("ess0").contains("Soh"));
 		assertTrue(SendChannelValuesWorker.getDeviceChannels("_sum").contains("ProductionActivePower"));
+		assertTrue(SendChannelValuesWorker.getDeviceChannels("_sum").contains("GridActivePower"));
+		assertTrue(SendChannelValuesWorker.getDeviceChannels("_sum").contains("EssActivePower"));
+		assertTrue(SendChannelValuesWorker.getDeviceChannels("_sum").contains("EssSoc"));
+		assertEquals(4, SendChannelValuesWorker.getDeviceChannels("_sum").size());
 		assertNull(SendChannelValuesWorker.getDeviceChannels("ctrlBackend0"));
 
 		final var component = new DummyComponent("pvInverter0");
 		assertTrue(SendChannelValuesWorker.getChannelValue(component, "ActivePower").isJsonNull());
+	}
+
+	@Test
+	public void testSumPayloadValueUsesFloat() {
+		final var value = SendChannelValuesWorker.toBackendPayloadValue("_sum", new JsonPrimitive(12.34));
+		assertEquals(Float.class, value.getAsJsonPrimitive().getAsNumber().getClass());
+		assertEquals(12.34F, value.getAsFloat(), 0);
 	}
 
 	@Test
