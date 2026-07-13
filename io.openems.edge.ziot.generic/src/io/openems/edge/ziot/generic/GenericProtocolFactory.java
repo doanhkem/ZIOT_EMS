@@ -52,9 +52,14 @@ final class GenericProtocolFactory {
 		var tasks = new ArrayList<Task>();
 		addReadTasks(tasks, mapping, mapping.readRegisters, channels, mapper, readFactorProvider, false);
 		addReadTasks(tasks, mapping, mapping.readInputRegisters, channels, mapper, readFactorProvider, true);
-		addReadTasks(tasks, mapping, mapping.watchEvents, channels, mapper, readFactorProvider, false);
+		addReadTasks(tasks, mapping, mapping.watchEvents, channels, mapper, readFactorProvider,
+				useInputRegistersForWatchEvents(mapping));
 		addWriteTasks(tasks, mapping, mapping.writeRegisters, channels, mapper);
 		return new ModbusProtocol(component, tasks.toArray(Task[]::new));
+	}
+
+	private static boolean useInputRegistersForWatchEvents(GenericMapping mapping) {
+		return !mapping.readInputRegisters.isEmpty();
 	}
 
 	private static void addReadTasks(List<Task> tasks, GenericMapping mapping, List<GenericMapping.Register> registers,
