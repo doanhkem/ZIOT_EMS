@@ -38,6 +38,8 @@ import io.openems.edge.common.component.AbstractOpenemsComponent;
 import io.openems.edge.common.component.ComponentManager;
 import io.openems.edge.common.component.OpenemsComponent;
 import io.openems.edge.controller.api.Controller;
+import io.openems.edge.meter.api.ElectricityMeter;
+import io.openems.edge.pvinverter.api.ManagedSymmetricPvInverter;
 
 @Designate(ocd = Config.class, factory = true)
 @Component(//
@@ -216,7 +218,7 @@ public class ControllerMqttTelemetryImpl extends AbstractOpenemsComponent
 	}
 
 	private static boolean isStandaloneMeter(OpenemsComponent component) {
-		return component.getClass().getName().contains(".edge.meter.");
+		return component instanceof ElectricityMeter && !(component instanceof ManagedSymmetricPvInverter);
 	}
 
 	private static String emptyToNull(String value) {
