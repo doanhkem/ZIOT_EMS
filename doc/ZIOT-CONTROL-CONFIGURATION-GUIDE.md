@@ -177,6 +177,36 @@ PV limit duoc keo len lai theo logic controller.
 PV tang len neu inverter co kha nang phat.
 ```
 
+### 1.5 Log van hanh
+
+Controller se in mot dong log de nhin nhanh trang thai tinh toan:
+
+```text
+CTRL_WRITE_OK ⚡ Grid=133.59 kW | 🏭 Load=133.59 kW | ☀ PV=0.00 kW | 🎯 Limit=0.00 kW | ✍ Write=100.00% -> pvInverter0
+```
+
+Y nghia:
+
+| Field | Ghi chu |
+| --- | --- |
+| `Grid` | Gia tri grid meter. Duong la mua tu luoi, am la phat len luoi |
+| `Load` | Uoc tinh tai, bang `Grid + PV` |
+| `PV` | Cong suat PV hien tai |
+| `Limit` | `maximumSellToGridPower` |
+| `Write` | Setpoint controller gui cho PV inverter |
+
+Neu can xac nhan Modbus write that su thanh cong, xem marker:
+
+```text
+ZIOT_WRITE_OK component=pvInverter0 tag=ActivePowerLimitFixed channel=SetActivePowerLimitPercent fc=FC6 offset=5402 size=1
+```
+
+Lenh grep tren IOT:
+
+```bash
+docker logs --since 10m openems-edge 2>&1 | grep -E "CTRL_WRITE_OK|ZIOT_WRITE_OK"
+```
+
 ## 2. He Hybrid
 
 ### 2.1 Muc tieu dieu khien

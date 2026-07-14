@@ -69,7 +69,18 @@ The mapping file is split by task:
 - `read_input_registers`: telemetry from input registers, FC4
 - `watch_events`: alarm/error registers, read like telemetry but used for
   immediate backend error payloads
-- `write_registers`: control registers, FC6 in the first implementation
+- `write_registers`: control registers, FC6 for one register and FC16 for
+  multi-register writes
+
+`watch_events` follows the read register type of the model:
+
+```text
+Model has read_input_registers -> watch_events uses FC4
+Model has only read_registers  -> watch_events uses FC3
+```
+
+This keeps error/alarm mapping simple for devices like ASW150K, where normal
+telemetry and error words are both in the input-register area.
 
 `State` and `ModbusCommunicationFailed` are OpenEMS runtime channels. They
 should stay in the BE/UI schema, but do not need physical register mapping.
@@ -99,6 +110,16 @@ Each component:
 - maps supported fields to standard OpenEMS channels
 - ignores fields with `offSet: null`
 - keeps the existing OpenEMS natures so existing controllers continue to work
+
+Successful generic Modbus writes are logged with a stable marker:
+
+```text
+ZIOT_WRITE_OK component=pvInverter0 tag=ActivePowerLimitFixed channel=SetActivePowerLimitPercent fc=FC6 offset=5402 size=1
+```
+
+This means the Modbus write task completed with an OK response. Controller-level
+decisions may have their own log markers, for example PV sell-to-grid limiting
+uses `CTRL_WRITE_OK`.
 
 The old model-specific drivers remain available during migration. The generic
 bundle is opt-in and should be enabled per site/model only after validation.
