@@ -6,6 +6,9 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.function.BiFunction;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.openems.common.channel.Unit;
 import io.openems.common.types.OpenemsType;
 import io.openems.edge.bridge.modbus.api.AbstractOpenemsModbusComponent;
@@ -28,10 +31,13 @@ import io.openems.edge.bridge.modbus.api.task.FC4ReadInputRegistersTask;
 import io.openems.edge.bridge.modbus.api.task.FC16WriteRegistersTask;
 import io.openems.edge.bridge.modbus.api.task.FC6WriteRegisterTask;
 import io.openems.edge.bridge.modbus.api.task.Task;
+import io.openems.edge.bridge.modbus.api.task.Task.ExecuteState;
 import io.openems.edge.common.channel.ChannelId;
 import io.openems.edge.common.taskmanager.Priority;
 
 final class GenericProtocolFactory {
+
+	private static final Logger LOG = LoggerFactory.getLogger(GenericProtocolFactory.class);
 
 	@FunctionalInterface
 	interface Mapper {
@@ -54,7 +60,7 @@ final class GenericProtocolFactory {
 		addReadTasks(tasks, mapping, mapping.readInputRegisters, channels, mapper, readFactorProvider, true);
 		addReadTasks(tasks, mapping, mapping.watchEvents, channels, mapper, readFactorProvider,
 				useInputRegistersForWatchEvents(mapping));
-		addWriteTasks(tasks, mapping, mapping.writeRegisters, channels, mapper);
+		addWriteTasks(component, tasks, mapping, mapping.writeRegisters, channels, mapper);
 		return new ModbusProtocol(component, tasks.toArray(Task[]::new));
 	}
 
@@ -78,8 +84,8 @@ final class GenericProtocolFactory {
 		}
 	}
 
-	private static void addWriteTasks(List<Task> tasks, GenericMapping mapping, List<GenericMapping.Register> registers,
-			Map<String, ChannelId> channels, Mapper mapper) {
+	private static void addWriteTasks(AbstractOpenemsModbusComponent component, List<Task> tasks, GenericMapping mapping,
+			List<GenericMapping.Register> registers, Map<String, ChannelId> channels, Mapper mapper) {
 		for (var register : registers) {
 			var channel = channels.get(register.tagName);
 			if (channel == null || !register.isMapped()) {
@@ -89,11 +95,22 @@ final class GenericProtocolFactory {
 			var converter = converter(register, channel, 1.0);
 			var mapped = mapper.map(channel, element, converter);
 			if (register.size.intValue() == 1 && mapped instanceof AbstractSingleWordElement<?, ?> singleWordElement) {
-				tasks.add(new FC6WriteRegisterTask(register.offset, singleWordElement));
+				tasks.add(new FC6WriteRegisterTask(state -> logWriteOk(component, register, channel, "FC6", state),
+						register.offset, singleWordElement));
 			} else {
-				tasks.add(new FC16WriteRegistersTask(register.offset, mapped));
+				tasks.add(new FC16WriteRegistersTask(state -> logWriteOk(component, register, channel, "FC16", state),
+						register.offset, mapped));
 			}
 		}
+	}
+
+	private static void logWriteOk(AbstractOpenemsModbusComponent component, GenericMapping.Register register,
+			ChannelId channel, String functionCode, ExecuteState state) {
+		if (state != ExecuteState.OK) {
+			return;
+		}
+		LOG.info("ZIOT_WRITE_OK component={} tag={} channel={} fc={} offset={} size={}", component.id(),
+				register.tagName, channel.id(), functionCode, register.offset, register.size);
 	}
 
 	private static ModbusElement element(GenericMapping mapping, GenericMapping.Register register) {
