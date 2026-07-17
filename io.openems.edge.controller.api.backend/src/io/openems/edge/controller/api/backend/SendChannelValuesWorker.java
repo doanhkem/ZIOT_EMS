@@ -27,7 +27,6 @@ import java.util.stream.Collector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.TreeBasedTable;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.google.gson.JsonElement;
@@ -52,15 +51,11 @@ import io.openems.edge.common.type.TypeUtils;
  * asynchronous task.
  *
  * <p>
- * The logic sends one synchronized snapshot of all values on fixed five-minute
- * buckets.
+ * The logic sends aggregated values on fixed five-minute buckets.
  */
 public class SendChannelValuesWorker {
 
 	private static final int AGGREGATION_MINUTES = 5;
-	private static final int SEND_VALUES_OF_ALL_CHANNELS_AFTER_SECONDS = 300; /* 5 minutes */
-	private static final long SEND_VALUES_OF_ALL_CHANNELS_AFTER_MILLIS = SEND_VALUES_OF_ALL_CHANNELS_AFTER_SECONDS
-			* 1_000L;
 	private static final String ERROR_CODE_1_CHANNEL_ID = "ErrorCode1";
 	private static final String ERROR_CODE_2_CHANNEL_ID = "ErrorCode2";
 	private static final String ERROR_CODE_3_CHANNEL_ID = "ErrorCode3";
@@ -127,8 +122,6 @@ public class SendChannelValuesWorker {
 
 	private final AtomicBoolean sendValuesOfAllChannelsAggregated = new AtomicBoolean(true);
 
-	private long lastSendValuesOfAllChannelsBucketStart = Long.MIN_VALUE;
-
 	private Instant lastSendAggregatedDataTimestamp;
 
 	private final Map<String, List<JsonElement>> lastErrorCodes = new HashMap<>();
@@ -162,11 +155,9 @@ public class SendChannelValuesWorker {
 
 		// Update the values of all channels
 		final var enabledComponents = this.parent.componentManager.getEnabledComponents();
-		final var allValues = this.collectData(enabledComponents);
 		final var aggregatedValues = this.collectAggregatedData(now, enabledComponents);
 		final var changedErrorCodes = this.collectChangedErrorCodes(enabledComponents);
 
-		this.executor.execute(new SendTask(this, now.toInstant(), allValues));
 		if (!changedErrorCodes.isEmpty()) {
 			this.executor.execute(new SendImmediateErrorTask(this, now.toInstant(), changedErrorCodes));
 		}
@@ -176,34 +167,6 @@ public class SendChannelValuesWorker {
 						new SendAggregatedDataTask(this, Instant.ofEpochMilli(timestamp), data), this.randomWaitSeconds,
 						TimeUnit.SECONDS);
 			});
-		}
-	}
-
-	/**
-	 * Cycles through all Channels and collects the value.
-	 *
-	 * @param enabledComponents the enabled components
-	 * @return collected data
-	 */
-	private ImmutableMap<String, JsonElement> collectData(List<OpenemsComponent> enabledComponents) {
-		try {
-			final var result = ImmutableMap.<String, JsonElement>builder();
-			for (var component : enabledComponents) {
-				final var channels = getDeviceChannels(component.id());
-				if (channels == null) {
-					continue;
-				}
-				for (var channelId : channels) {
-					result.put(component.id() + "/" + channelId,
-							toBackendPayloadValue(component.id(), channelId, getChannelValue(component, channelId)));
-				}
-			}
-			return result.build();
-		} catch (Exception e) {
-			// ConcurrentModificationException can happen if Channels are dynamically added
-			// or removed
-			this.parent.logWarn(this.log, "Unable to collect data: " + e.getMessage());
-			return ImmutableMap.of();
 		}
 	}
 
@@ -542,41 +505,6 @@ public class SendChannelValuesWorker {
 		return JsonNull.INSTANCE;
 	}
 
-	private static class SendTask implements Runnable {
-
-		private final SendChannelValuesWorker parent;
-		private final Instant timestamp;
-		private final Map<String, JsonElement> allValues;
-
-		public SendTask(SendChannelValuesWorker parent, Instant timestamp, Map<String, JsonElement> allValues) {
-			this.parent = parent;
-			this.timestamp = timestamp;
-			this.allValues = allValues;
-		}
-
-		@Override
-		public void run() {
-			final var bucketStart = getFiveMinuteBucketStart(this.timestamp);
-			if (bucketStart == Long.MIN_VALUE || bucketStart == this.parent.lastSendValuesOfAllChannelsBucketStart) {
-				return;
-			}
-
-			final var message = new TimestampedDataNotification();
-			message.add(bucketStart, this.allValues);
-
-			if (this.parent.parent.config.debugMode()) {
-				this.parent.parent.logInfo(this.parent.log, "Sending five-minute snapshot at ["
-						+ Instant.ofEpochMilli(bucketStart) + "] with [" + this.allValues.size() + " values]");
-			}
-
-			final var wasSent = this.parent.parent.websocket.sendMessage(message);
-			logSendResult(this.parent, wasSent, "SNAPSHOT", bucketStart, this.allValues.size(), message.getParams());
-			if (wasSent) {
-				this.parent.lastSendValuesOfAllChannelsBucketStart = bucketStart;
-			}
-		}
-	}
-
 	private static class SendImmediateErrorTask implements Runnable {
 
 		private final SendChannelValuesWorker parent;
@@ -600,18 +528,6 @@ public class SendChannelValuesWorker {
 					message.getParams());
 			this.parent.parent.getUnableToSendChannel().setNextValue(!wasSent);
 		}
-	}
-
-	protected static long getFiveMinuteBucketStart(Instant timestamp) {
-		final var epochMillis = timestamp.toEpochMilli();
-		final var bucketOffset = Math.floorMod(epochMillis, SEND_VALUES_OF_ALL_CHANNELS_AFTER_MILLIS);
-
-		// Send on the first Core.Cycle within minute 00/05/10/15..., while the
-		// packet timestamp is fixed to the beginning of that five-minute bucket.
-		if (bucketOffset >= 60_000L) {
-			return Long.MIN_VALUE;
-		}
-		return epochMillis - bucketOffset;
 	}
 
 	private static final class SendAggregatedDataTask implements Runnable {
