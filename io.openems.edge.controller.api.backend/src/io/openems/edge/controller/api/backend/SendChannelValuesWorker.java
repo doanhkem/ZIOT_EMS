@@ -569,9 +569,9 @@ public class SendChannelValuesWorker {
 						+ Instant.ofEpochMilli(bucketStart) + "] with [" + this.allValues.size() + " values]");
 			}
 
-			this.parent.parent.logInfo(this.parent.log, "BACKEND_PAYLOAD=" + message.getParams());
-
-			if (this.parent.parent.websocket.sendMessage(message)) {
+			final var wasSent = this.parent.parent.websocket.sendMessage(message);
+			logSendResult(this.parent, wasSent, "SNAPSHOT", bucketStart, this.allValues.size(), message.getParams());
+			if (wasSent) {
 				this.parent.lastSendValuesOfAllChannelsBucketStart = bucketStart;
 			}
 		}
@@ -595,9 +595,9 @@ public class SendChannelValuesWorker {
 			final var message = new TimestampedDataNotification();
 			message.add(this.timestamp.toEpochMilli(), this.changedErrorCodes);
 
-			this.parent.parent.logInfo(this.parent.log, "BACKEND_ERROR_PAYLOAD=" + message.getParams());
-
 			final var wasSent = this.parent.parent.websocket.sendMessage(message);
+			logSendResult(this.parent, wasSent, "ERROR", this.timestamp.toEpochMilli(), this.changedErrorCodes.size(),
+					message.getParams());
 			this.parent.parent.getUnableToSendChannel().setNextValue(!wasSent);
 		}
 	}
@@ -634,11 +634,19 @@ public class SendChannelValuesWorker {
 			message.add(this.timestamp.toEpochMilli(), this.allValues);
 
 			final var wasSent = this.parent.parent.websocket.sendMessage(message);
+			logSendResult(this.parent, wasSent, "AGGREGATED", this.timestamp.toEpochMilli(), this.allValues.size(),
+					message.getParams());
 
 			// Set the UNABLE_TO_SEND channel
 			this.parent.parent.getUnableToSendChannel().setNextValue(!wasSent);
 		}
 
+	}
+
+	private static void logSendResult(SendChannelValuesWorker parent, boolean wasSent, String type, long timestamp,
+			int values, Object payload) {
+		parent.parent.logInfo(parent.log, (wasSent ? "BACKEND_SEND_OK" : "BACKEND_SEND_FAILED") + " type=" + type
+				+ " timestamp=" + timestamp + " values=" + values + " payload=" + payload);
 	}
 
 }
