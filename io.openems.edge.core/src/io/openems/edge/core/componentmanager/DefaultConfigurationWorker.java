@@ -98,6 +98,37 @@ public class DefaultConfigurationWorker extends ComponentManagerWorker {
 		});
 
 		/*
+		 * Create Controller.Api.Rest.ReadWrite
+		 */
+		if (existingConfigs.stream().noneMatch(c -> //
+		"Controller.Api.Rest.ReadOnly".equals(c.factoryPid) || "Controller.Api.Rest.ReadWrite".equals(c.factoryPid))) {
+			this.createConfiguration(defaultConfigurationFailed, "Controller.Api.Rest.ReadWrite", Arrays.asList(//
+					new Property("id", "ctrlApiRest0"), //
+					new Property("alias", ""), //
+					new Property("enabled", true), //
+					new Property("port", 8084), //
+					new Property("connectionlimit", 5), //
+					new Property("apiTimeout", 60), //
+					new Property("debugMode", false) //
+			));
+		}
+
+		/*
+		 * Create Controller.Api.Websocket
+		 */
+		if (existingConfigs.stream().noneMatch(c -> //
+		"Controller.Api.Websocket".equals(c.factoryPid))) {
+			this.createConfiguration(defaultConfigurationFailed, "Controller.Api.Websocket", Arrays.asList(//
+					new Property("id", "ctrlApiWebsocket0"), //
+					new Property("alias", ""), //
+					new Property("enabled", true), //
+					new Property("port", 8085), //
+					new Property("apiTimeout", 60), //
+					new Property("debugMode", false) //
+			));
+		}
+
+		/*
 		 * Create Timedata.Rrd4j
 		 */
 		if (existingConfigs.stream().noneMatch(c -> //
