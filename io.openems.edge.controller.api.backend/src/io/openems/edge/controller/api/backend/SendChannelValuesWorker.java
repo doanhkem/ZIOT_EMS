@@ -524,7 +524,7 @@ public class SendChannelValuesWorker {
 			message.add(this.timestamp.toEpochMilli(), this.changedErrorCodes);
 
 			final var wasSent = this.parent.parent.websocket.sendMessage(message);
-			logSendResult(this.parent, wasSent, "ERROR", this.timestamp.toEpochMilli(), this.changedErrorCodes.size(),
+			logSendResult(this.parent, wasSent, "LIVE", this.timestamp.toEpochMilli(), this.changedErrorCodes.size(),
 					message.getParams());
 			this.parent.parent.getUnableToSendChannel().setNextValue(!wasSent);
 		}
@@ -550,7 +550,7 @@ public class SendChannelValuesWorker {
 			message.add(this.timestamp.toEpochMilli(), this.allValues);
 
 			final var wasSent = this.parent.parent.websocket.sendMessage(message);
-			logSendResult(this.parent, wasSent, "AGGREGATED", this.timestamp.toEpochMilli(), this.allValues.size(),
+			logSendResult(this.parent, wasSent, "LIVE", this.timestamp.toEpochMilli(), this.allValues.size(),
 					message.getParams());
 
 			// Set the UNABLE_TO_SEND channel
