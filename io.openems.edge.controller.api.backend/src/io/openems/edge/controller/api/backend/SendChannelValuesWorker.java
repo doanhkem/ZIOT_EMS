@@ -35,7 +35,6 @@ import com.google.gson.JsonPrimitive;
 
 import io.openems.common.channel.AccessMode;
 import io.openems.common.channel.Unit;
-import io.openems.common.jsonrpc.notification.AggregatedDataNotification;
 import io.openems.common.jsonrpc.notification.TimestampedDataNotification;
 import io.openems.common.timedata.DurationUnit;
 import io.openems.common.types.OpenemsType;
@@ -546,7 +545,7 @@ public class SendChannelValuesWorker {
 
 		@Override
 		public void run() {
-			final var message = new AggregatedDataNotification();
+			final var message = new TimestampedDataNotification();
 			message.add(this.timestamp.toEpochMilli(), this.allValues);
 
 			final var wasSent = this.parent.parent.websocket.sendMessage(message);
