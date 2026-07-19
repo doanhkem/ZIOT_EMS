@@ -4,13 +4,39 @@
 
 Mục tiêu triển khai: trên IOT2050 chỉ cần Docker/Docker Compose, không cần cài Java trên host. Image đã đóng sẵn Java runtime, `ziot-edge.jar` và cấu hình runtime cần thiết.
 
+## Lệnh Nhanh Trên Windows
+
+Mở PowerShell tại thư mục dự án:
+
+```powershell
+cd "D:\visualcode\ZIOT\EMS edeg\EMS_pro\EMS_pro"
+```
+
+Build ZIOT Edge:
+
+```powershell
+.\build-ziot-edge.bat
+```
+
+Chạy Edge sau khi build:
+
+```powershell
+java -jar build\ziot-edge.jar
+```
+
+Mở giao diện cấu hình:
+
+```text
+http://localhost:8080/system/console/configMgr
+```
+
 ## Tài Liệu Chi Tiết
 
 - [Tổng quan tài liệu ZIOT EMS](doc/README.md)
-- [ZIOT Generic Edge Architecture](doc/ZIOT-GENERIC-EDGE-ARCHITECTURE.md)
-- [ZIOT OpenEMS Edge - Device Configuration Guide](doc/ZIOT-DEVICE-CONFIGURATION-GUIDE.md)
-- [ZIOT Control Configuration Guide](doc/ZIOT-CONTROL-CONFIGURATION-GUIDE.md)
-- [Mobile Device Control Requirements](doc/ZIOT_MOBILE_DEVICE_CONTROL_REQUIREMENTS.md)
+- [Kiến trúc ZIOT Generic Edge](doc/ZIOT-GENERIC-EDGE-ARCHITECTURE.md)
+- [Hướng dẫn khai báo thiết bị ZIOT](doc/ZIOT-DEVICE-CONFIGURATION-GUIDE.md)
+- [Hướng dẫn cấu hình điều khiển ZIOT](doc/ZIOT-CONTROL-CONFIGURATION-GUIDE.md)
+- [Yêu cầu giao diện điều khiển thiết bị trên mobile](doc/ZIOT_MOBILE_DEVICE_CONTROL_REQUIREMENTS.md)
 
 ## Thành Phần Chính
 
@@ -34,12 +60,12 @@ PV-Inverter Cluster
 ESS Cluster
 ```
 
-Các API/control mới:
+Các API/điều khiển mới:
 
 ```text
 restartDevice
-RestartDevice write channel
-Soh channel for ESS payload
+Kênh ghi RestartDevice
+Kênh SOH cho payload ESS
 ```
 
 ## Mapping Thiết Bị
@@ -71,26 +97,26 @@ Khi có thông tin thanh ghi restart của thiết bị, điền ví dụ:
 
 Hiện Generic Modbus write đang hỗ trợ FC6 cho `size = 1`. Nếu thiết bị cần ghi nhiều thanh ghi bằng FC16 thì cần bổ sung thêm.
 
-### watch_events va ErrorCode
+### watch_events và ErrorCode
 
-`watch_events` dung de doc cac thanh ghi loi/canh bao nhu `ErrorCode1..3`.
+`watch_events` dùng để đọc các thanh ghi lỗi/cảnh báo như `ErrorCode1..3`.
 
-Quy tac function code:
+Quy tắc function code:
 
 ```text
-Neu model co read_input_registers -> watch_events doc bang FC4
-Neu model chi co read_registers   -> watch_events doc bang FC3
+Nếu model có read_input_registers -> watch_events đọc bằng FC4
+Nếu model chỉ có read_registers   -> watch_events đọc bằng FC3
 ```
 
-Vi du ASW150K manual ghi `31378/31379`, nhung khi khai bao Modbus offset trong
-Edge thi dung:
+Ví dụ ASW150K manual ghi `31378/31379`, nhưng khi khai báo Modbus offset trong
+Edge thì dùng:
 
 ```json
 {"tagName": "ErrorCode1", "unit": "", "offSet": 1377, "dataType": "uint16", "PF": 0, "size": 1}
 {"tagName": "ErrorCode2", "unit": "", "offSet": 1378, "dataType": "uint16", "PF": 0, "size": 1}
 ```
 
-Gia tri nay se hien thi tren channel `FaultCode1/2`, va payload BE se gui
+Giá trị này sẽ hiển thị trên channel `FaultCode1/2`, và payload BE sẽ gửi
 `ErrorCode1/2`.
 
 ## BE Gọi Restart Thiết Bị
@@ -163,8 +189,8 @@ Xem log:
 docker logs -f openems-edge
 ```
 
-Neu site dung container name khac, vi du `ziot-edge`, thay ten container trong
-lenh log/restart tuong ung.
+Nếu site dùng container name khác, ví dụ `ziot-edge`, thay tên container trong
+lệnh log/restart tương ứng.
 
 Restart container:
 
@@ -196,7 +222,7 @@ nano /opt/openems-edge/outputs/deviceConfig_openems_fields.conf
 docker compose restart openems-edge
 ```
 
-## Compile Trên Windows
+## Biên Dịch Trên Windows
 
 Yêu cầu:
 
@@ -211,10 +237,10 @@ Mở PowerShell tại root dự án:
 cd "D:\visualcode\ZIOT\EMS edeg\EMS_pro\EMS_pro"
 ```
 
-Build ZIOT Edge jar:
+Build jar ZIOT Edge:
 
 ```powershell
-.\gradlew.bat buildZiotEdge --console=plain --warn
+.\build-ziot-edge.bat
 ```
 
 Kết quả mong đợi:
@@ -246,7 +272,13 @@ Copy-Item `
 
 ## Chạy Edge Trên Windows
 
-Tạo thư mục runtime:
+Lệnh chạy nhanh sau khi build:
+
+```powershell
+java -jar build\ziot-edge.jar
+```
+
+Nếu muốn chỉ định riêng thư mục cấu hình/dữ liệu khi chạy local, tạo thư mục runtime:
 
 ```powershell
 New-Item -ItemType Directory -Force C:\openems\config | Out-Null
@@ -255,7 +287,7 @@ New-Item -ItemType Directory -Force C:\openems\outputs | Out-Null
 Copy-Item -Force outputs\deviceConfig_openems_fields.conf C:\openems\outputs\
 ```
 
-Chạy bằng jar đã build:
+Chạy bằng jar đã build với thư mục runtime riêng:
 
 ```powershell
 java `
@@ -287,53 +319,53 @@ http://localhost:8084/rest
 
 ## Log Điều Khiển
 
-Controller PV Sell-to-Grid Limit co log de xem nhanh controller dang tinh va
-gui setpoint gi:
+Controller PV Sell-to-Grid Limit có log để xem nhanh controller đang tính và
+gửi setpoint gì:
 
 ```text
 CTRL_WRITE_OK ⚡ Grid=133.59 kW | 🏭 Load=133.59 kW | ☀ PV=0.00 kW | 🎯 Limit=0.00 kW | ✍ Write=100.00% -> pvInverter0
 ```
 
-Y nghia:
+Ý nghĩa:
 
 ```text
-Grid  : cong suat tai grid meter; duong la mua tu luoi, am la phat len luoi
-Load  : uoc tinh tai = Grid + PV
-PV    : cong suat PV hien tai
+Grid  : công suất tại grid meter; dương là mua từ lưới, âm là phát lên lưới
+Load  : ước tính tải = Grid + PV
+PV    : công suất PV hiện tại
 Limit : maximumSellToGridPower
-Write : setpoint controller gui cho inverter
+Write : setpoint controller gửi cho inverter
 ```
 
-Log xac nhan Modbus write thanh cong:
+Log xác nhận ghi Modbus thành công:
 
 ```text
 ZIOT_WRITE_OK component=pvInverter0 tag=ActivePowerLimitFixed channel=SetActivePowerLimitPercent fc=FC6 offset=5402 size=1
 ```
 
-Lenh grep nhanh:
+Lệnh grep nhanh:
 
 ```bash
 docker logs --since 10m openems-edge 2>&1 | grep -E "CTRL_WRITE_OK|ZIOT_WRITE_OK"
 ```
 
-## MQTT Telemetry
+## Telemetry MQTT
 
-ZIOT Edge co 3 phan MQTT chinh:
-
-```text
-Bridge.Mqtt               Ket noi MQTT broker dung chung
-Controller.Api.MQTT       Publish channel OpenEMS len MQTT
-Controller.MQTT.Telemetry Publish payload telemetry compact
-```
-
-`Controller.MQTT.Telemetry` tu phan biet device:
+ZIOT Edge có 3 phần MQTT chính:
 
 ```text
-ZIOT Generic Meter       -> payload meter gon: kiloWatts, kWH, data, timeStamp
-ZIOT Generic PV-Inverter -> payload inverter day du: Watts, WH, VoltAN/BN/CN, AmpsA/B/C, DCVolt, DCAmps, ...
+Bridge.Mqtt               Kết nối MQTT broker dùng chung
+Controller.Api.MQTT       Publish channel OpenEMS lên MQTT
+Controller.MQTT.Telemetry Gửi payload telemetry gọn
 ```
 
-Payload meter mau:
+`Controller.MQTT.Telemetry` tự phân biệt thiết bị:
+
+```text
+ZIOT Generic Meter       -> payload meter gọn: kiloWatts, kWH, data, timeStamp
+ZIOT Generic PV-Inverter -> payload inverter đầy đủ: Watts, WH, VoltAN/BN/CN, AmpsA/B/C, DCVolt, DCAmps, ...
+```
+
+Payload meter mẫu:
 
 ```json
 {
@@ -369,9 +401,9 @@ Read only
 
 `Model key` dùng dropdown lấy theo mapping file. Khi thêm model mới vào `deviceConfig_openems_fields.conf`, app sẽ đọc danh sách model từ file config.
 
-## PV/BESS Control Requirement
+## Yêu Cầu Điều Khiển PV/BESS
 
-Requirement cho mobile app nằm tại:
+Yêu cầu cho mobile app nằm tại:
 
 ```text
 doc/ZIOT_MOBILE_DEVICE_CONTROL_REQUIREMENTS.md
@@ -379,11 +411,11 @@ doc/ZIOT_MOBILE_DEVICE_CONTROL_REQUIREMENTS.md
 
 Tóm tắt:
 
-- `PV Plan`: Restart, Load-following, Fixed value.
-- `PV Plan`: inverter ngoài cluster bắt buộc nhập fixed power.
-- `PV+BESS Plan`: Restart, Load-following, Peak shaving, TOU.
-- `PV+BESS Plan`: ESS ngoài cluster mặc định `Not controlled`.
-- TOU hỗ trợ tối đa 10 time slots.
+- `PV Plan`: khởi động lại, bám tải, chạy theo giá trị cố định.
+- `PV Plan`: inverter ngoài cluster bắt buộc nhập công suất cố định.
+- `PV+BESS Plan`: khởi động lại, bám tải, peak shaving, TOU.
+- `PV+BESS Plan`: ESS ngoài cluster mặc định là không điều khiển.
+- TOU hỗ trợ tối đa 10 khung thời gian.
 
 ## CI/CD
 
@@ -397,8 +429,8 @@ Chức năng:
 
 - Build `ziot-edge.jar`.
 - Kiểm tra bundle runtime quan trọng.
-- Build Docker image `linux/arm64`.
-- Push image lên Docker Hub.
+- Tạo Docker image `linux/arm64`.
+- Đẩy image lên Docker Hub.
 
 Docker image:
 
@@ -418,7 +450,7 @@ Tag theo Git tag:
 doanhnguyen01/ziot:ziot-edge-iot2050-<TAG>
 ```
 
-## Troubleshooting Windows Build
+## Xử Lý Lỗi Build Trên Windows
 
 Nếu gặp lỗi Kotlin daemon kiểu `AccessDeniedException` trong:
 
@@ -430,7 +462,7 @@ Thử dừng Gradle daemon rồi build lại:
 
 ```powershell
 .\gradlew.bat --stop
-.\gradlew.bat buildZiotEdge --console=plain --warn
+.\build-ziot-edge.bat
 ```
 
 Nếu gặp lỗi thiếu bundle generated dạng:
@@ -442,7 +474,7 @@ Bundle file ".../generated/*.jar" does not exist
 Thường là workspace bnd/Gradle chưa sinh đủ generated jar. Thử build lại không dùng `--rerun-tasks` trước:
 
 ```powershell
-.\gradlew.bat buildZiotEdge --console=plain --warn
+.\build-ziot-edge.bat
 ```
 
 Nếu vẫn lỗi, kiểm tra các module vừa sửa có compile được không:

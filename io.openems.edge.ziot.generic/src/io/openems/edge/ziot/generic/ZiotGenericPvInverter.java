@@ -5,6 +5,7 @@ import static io.openems.common.channel.Unit.AMPERE;
 import static io.openems.common.channel.Unit.DEGREE_CELSIUS;
 import static io.openems.common.channel.Unit.MILLIVOLT;
 import static io.openems.common.channel.Unit.PERCENT;
+import static io.openems.common.channel.Unit.SECONDS;
 import static io.openems.common.channel.Unit.VOLT;
 import static io.openems.common.channel.Unit.WATT;
 import static io.openems.common.types.OpenemsType.FLOAT;
@@ -33,6 +34,8 @@ public interface ZiotGenericPvInverter extends ManagedSymmetricPvInverter, Elect
 		POWER_ON_OFF(Doc.of(INTEGER).accessMode(READ_WRITE)), //
 		SET_ACTIVE_POWER_LIMIT(Doc.of(INTEGER).unit(WATT).accessMode(READ_WRITE)), //
 		SET_ACTIVE_POWER_LIMIT_PERCENT(Doc.of(INTEGER).unit(PERCENT).accessMode(READ_WRITE)), //
+		ACTIVE_POWER_LIMIT_ENABLE(Doc.of(INTEGER).accessMode(READ_WRITE)), //
+		ACTIVE_POWER_LIMIT_REVERT_TIME(Doc.of(INTEGER).unit(SECONDS)), //
 		P_LIMIT_TYPE(Doc.of(INTEGER).accessMode(READ_WRITE)), //
 		WATCH_DOG_TAG(Doc.of(INTEGER).accessMode(READ_WRITE)), //
 		VOLTAGE_L1_L2(Doc.of(INTEGER).unit(MILLIVOLT)), //

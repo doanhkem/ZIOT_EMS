@@ -125,7 +125,8 @@ public class ZiotGenericPvInverterImpl extends AbstractOpenemsModbusComponent
 		}
 		if (this.writeCapabilities.has(ZiotGenericPvInverter.ChannelId.SET_ACTIVE_POWER_LIMIT_PERCENT)) {
 			this.<IntegerWriteChannel>channel(ZiotGenericPvInverter.ChannelId.SET_ACTIVE_POWER_LIMIT_PERCENT)
-					.setNextWriteValue(this.powerToPercent(value));
+					.setNextWriteValue(this.powerToPercent(value, this.hasPowerLimitEnable()));
+			this.enablePowerLimitIfConfigured();
 			return;
 		}
 		throw new OpenemsException("No PV active-power write register is configured.");
@@ -136,17 +137,30 @@ public class ZiotGenericPvInverterImpl extends AbstractOpenemsModbusComponent
 		this.setActivePowerLimit(Integer.valueOf(value));
 	}
 
-	private int powerToPercent(int power) throws OpenemsException {
+	private int powerToPercent(int power, boolean avoidZeroPercent) throws OpenemsException {
 		var maxPower = this.getMaxApparentPower().orElse(0);
 		if (maxPower <= 0) {
 			throw new OpenemsException(
 					"MaxApparentPower must be configured/read before writing an active-power percentage.");
 		}
-		return clampPercent((int) Math.round(power * 100.0 / maxPower));
+		return clampPercent((int) Math.round(power * 100.0 / maxPower), avoidZeroPercent);
 	}
 
-	private static int clampPercent(int value) {
-		return Math.max(-100, Math.min(100, value));
+	private boolean hasPowerLimitEnable() {
+		return this.writeCapabilities.has(ZiotGenericPvInverter.ChannelId.ACTIVE_POWER_LIMIT_ENABLE);
+	}
+
+	private void enablePowerLimitIfConfigured() throws OpenemsNamedException {
+		if (!this.hasPowerLimitEnable()) {
+			return;
+		}
+		this.<IntegerWriteChannel>channel(ZiotGenericPvInverter.ChannelId.ACTIVE_POWER_LIMIT_ENABLE)
+				.setNextWriteValue(1);
+	}
+
+	private static int clampPercent(int value, boolean avoidZeroPercent) {
+		var min = avoidZeroPercent ? 1 : 0;
+		return Math.max(min, Math.min(100, value));
 	}
 
 	private void updateConfiguredLimits() {

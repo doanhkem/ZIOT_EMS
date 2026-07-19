@@ -47,6 +47,10 @@ final class GenericChannelMap {
 		alias(result, "PLimitPercent", ZiotGenericPvInverter.ChannelId.SET_ACTIVE_POWER_LIMIT_PERCENT);
 		alias(result, "ActivePowerLimitPercent", ZiotGenericPvInverter.ChannelId.SET_ACTIVE_POWER_LIMIT_PERCENT);
 		alias(result, "SetActivePowerLimitPercent", ZiotGenericPvInverter.ChannelId.SET_ACTIVE_POWER_LIMIT_PERCENT);
+		alias(result, "WMaxLim_Ena", ZiotGenericPvInverter.ChannelId.ACTIVE_POWER_LIMIT_ENABLE);
+		alias(result, "ActivePowerLimitEnable", ZiotGenericPvInverter.ChannelId.ACTIVE_POWER_LIMIT_ENABLE);
+		alias(result, "WMaxLimPct_RvrtTms", ZiotGenericPvInverter.ChannelId.ACTIVE_POWER_LIMIT_REVERT_TIME);
+		alias(result, "ActivePowerLimitRevertTime", ZiotGenericPvInverter.ChannelId.ACTIVE_POWER_LIMIT_REVERT_TIME);
 		return result;
 	}
 
