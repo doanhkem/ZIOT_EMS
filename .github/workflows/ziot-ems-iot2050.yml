@@ -46,13 +46,6 @@ jobs:
           jar tf build/ziot-edge.jar | grep 'jar/io.openems.edge.controller.pvinverter.selltogridlimit.jar'
           jar tf build/ziot-edge.jar | grep 'jar/io.openems.edge.controller.hybrid.pvess.jar'
 
-      - name: Upload ZIOT Edge jar artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ziot-edge-iot2050
-          path: build/ziot-edge.jar
-          if-no-files-found: error
-
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 

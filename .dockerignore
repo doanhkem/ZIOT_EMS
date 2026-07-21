@@ -1,0 +1,12 @@
+*
+
+!build/
+!build/ziot-edge.jar
+
+!outputs/
+!outputs/**
+
+!.github/
+!.github/docker/
+!.github/docker/entrypoint.sh
+!.github/docker/ziot-edge.Dockerfile
