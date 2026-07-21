@@ -84,14 +84,23 @@ final class GenericProtocolFactory {
 			var element = element(mapping, register);
 			var converter = converter(register, channel, readFactorProvider.apply(register, channel));
 			var mapped = mapper.map(channel, element, converter);
-			readElements.add(new ReadElement(mapped));
+			readElements.add(new ReadElement(mapped, readPriority(mapping, register)));
 		}
 		readElements.sort(Comparator.comparingInt(e -> e.element.startAddress));
 
+		addReadTasks(tasks, inputRegisters, readElements, Priority.HIGH);
+		addReadTasks(tasks, inputRegisters, readElements, Priority.LOW);
+	}
+
+	private static void addReadTasks(List<Task> tasks, boolean inputRegisters, List<ReadElement> readElements,
+			Priority priority) {
 		var block = new ArrayList<ModbusElement>();
 		var blockStart = -1;
 		var nextAddress = -1;
 		for (var readElement : readElements) {
+			if (readElement.priority != priority) {
+				continue;
+			}
 			var element = readElement.element;
 			var elementEnd = element.startAddress + element.length;
 			if (block.isEmpty()) {
@@ -102,7 +111,7 @@ final class GenericProtocolFactory {
 			var gap = element.startAddress - nextAddress;
 			if (element.startAddress < nextAddress || blockLengthWithElement > MAX_READ_BLOCK_REGISTERS
 					|| gap > MAX_READ_GAP_REGISTERS) {
-				addReadTask(tasks, inputRegisters, blockStart, block);
+				addReadTask(tasks, inputRegisters, priority, blockStart, block);
 				block = new ArrayList<>();
 				blockStart = element.startAddress;
 				nextAddress = element.startAddress;
@@ -113,20 +122,27 @@ final class GenericProtocolFactory {
 			block.add(element);
 			nextAddress = elementEnd;
 		}
-		addReadTask(tasks, inputRegisters, blockStart, block);
+		addReadTask(tasks, inputRegisters, priority, blockStart, block);
 	}
 
-	private static void addReadTask(List<Task> tasks, boolean inputRegisters, int startAddress,
+	private static void addReadTask(List<Task> tasks, boolean inputRegisters, Priority priority, int startAddress,
 			List<ModbusElement> elements) {
 		if (elements.isEmpty()) {
 			return;
 		}
 		var block = elements.toArray(ModbusElement[]::new);
-		tasks.add(inputRegisters ? new FC4ReadInputRegistersTask(startAddress, Priority.HIGH, block)
-				: new FC3ReadRegistersTask(startAddress, Priority.HIGH, block));
+		tasks.add(inputRegisters ? new FC4ReadInputRegistersTask(startAddress, priority, block)
+				: new FC3ReadRegistersTask(startAddress, priority, block));
 	}
 
-	private record ReadElement(ModbusElement element) {
+	private static Priority readPriority(GenericMapping mapping, GenericMapping.Register register) {
+		if ("meter".equalsIgnoreCase(mapping.deviceType) && !"ActivePower".equals(register.tagName)) {
+			return Priority.LOW;
+		}
+		return Priority.HIGH;
+	}
+
+	private record ReadElement(ModbusElement element, Priority priority) {
 	}
 
 	private static void addWriteTasks(AbstractOpenemsModbusComponent component, List<Task> tasks, GenericMapping mapping,

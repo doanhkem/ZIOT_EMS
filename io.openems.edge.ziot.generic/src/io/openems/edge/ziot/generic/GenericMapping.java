@@ -14,6 +14,7 @@ final class GenericMapping {
 	final List<Register> writeRegisters = new ArrayList<>();
 	ByteOrder byteOrder = ByteOrder.BIG_ENDIAN;
 	WordOrder wordOrder = WordOrder.MSWLSW;
+	String deviceType = "";
 
 	static final class Register {
 		final String tagName;

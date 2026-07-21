@@ -29,6 +29,7 @@ final class GenericMappingLoader {
 				throw new OpenemsException("Model has no tasks object: " + model);
 			}
 			var result = new GenericMapping();
+			result.deviceType = stringOrNull(modelObject, "deviceType");
 			readDataFormat(modelObject, result);
 			readRegisters(tasks, "read_registers", result.readRegisters);
 			readRegisters(tasks, "read_input_registers", result.readInputRegisters);
