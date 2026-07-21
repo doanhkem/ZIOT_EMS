@@ -1,6 +1,7 @@
 package io.openems.edge.ziot.generic;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -16,6 +17,7 @@ import io.openems.edge.bridge.modbus.api.ElementToChannelConverter;
 import io.openems.edge.bridge.modbus.api.ModbusProtocol;
 import io.openems.edge.bridge.modbus.api.element.AbstractMultipleWordsElement;
 import io.openems.edge.bridge.modbus.api.element.AbstractSingleWordElement;
+import io.openems.edge.bridge.modbus.api.element.DummyRegisterElement;
 import io.openems.edge.bridge.modbus.api.element.FloatDoublewordElement;
 import io.openems.edge.bridge.modbus.api.element.ModbusElement;
 import io.openems.edge.bridge.modbus.api.element.ModbusRegisterElement;
@@ -38,6 +40,8 @@ import io.openems.edge.common.taskmanager.Priority;
 final class GenericProtocolFactory {
 
 	private static final Logger LOG = LoggerFactory.getLogger(GenericProtocolFactory.class);
+	private static final int MAX_READ_BLOCK_REGISTERS = 64;
+	private static final int MAX_READ_GAP_REGISTERS = 2;
 
 	@FunctionalInterface
 	interface Mapper {
@@ -71,6 +75,7 @@ final class GenericProtocolFactory {
 	private static void addReadTasks(List<Task> tasks, GenericMapping mapping, List<GenericMapping.Register> registers,
 			Map<String, ChannelId> channels, Mapper mapper,
 			BiFunction<GenericMapping.Register, ChannelId, Double> readFactorProvider, boolean inputRegisters) {
+		var readElements = new ArrayList<ReadElement>();
 		for (var register : registers) {
 			var channel = channels.get(register.tagName);
 			if (channel == null || !register.isMapped()) {
@@ -79,9 +84,49 @@ final class GenericProtocolFactory {
 			var element = element(mapping, register);
 			var converter = converter(register, channel, readFactorProvider.apply(register, channel));
 			var mapped = mapper.map(channel, element, converter);
-			tasks.add(inputRegisters ? new FC4ReadInputRegistersTask(register.offset, Priority.HIGH, mapped)
-					: new FC3ReadRegistersTask(register.offset, Priority.HIGH, mapped));
+			readElements.add(new ReadElement(mapped));
 		}
+		readElements.sort(Comparator.comparingInt(e -> e.element.startAddress));
+
+		var block = new ArrayList<ModbusElement>();
+		var blockStart = -1;
+		var nextAddress = -1;
+		for (var readElement : readElements) {
+			var element = readElement.element;
+			var elementEnd = element.startAddress + element.length;
+			if (block.isEmpty()) {
+				blockStart = element.startAddress;
+				nextAddress = element.startAddress;
+			}
+			var blockLengthWithElement = elementEnd - blockStart;
+			var gap = element.startAddress - nextAddress;
+			if (element.startAddress < nextAddress || blockLengthWithElement > MAX_READ_BLOCK_REGISTERS
+					|| gap > MAX_READ_GAP_REGISTERS) {
+				addReadTask(tasks, inputRegisters, blockStart, block);
+				block = new ArrayList<>();
+				blockStart = element.startAddress;
+				nextAddress = element.startAddress;
+			}
+			if (element.startAddress > nextAddress) {
+				block.add(new DummyRegisterElement(nextAddress, element.startAddress - 1));
+			}
+			block.add(element);
+			nextAddress = elementEnd;
+		}
+		addReadTask(tasks, inputRegisters, blockStart, block);
+	}
+
+	private static void addReadTask(List<Task> tasks, boolean inputRegisters, int startAddress,
+			List<ModbusElement> elements) {
+		if (elements.isEmpty()) {
+			return;
+		}
+		var block = elements.toArray(ModbusElement[]::new);
+		tasks.add(inputRegisters ? new FC4ReadInputRegistersTask(startAddress, Priority.HIGH, block)
+				: new FC3ReadRegistersTask(startAddress, Priority.HIGH, block));
+	}
+
+	private record ReadElement(ModbusElement element) {
 	}
 
 	private static void addWriteTasks(AbstractOpenemsModbusComponent component, List<Task> tasks, GenericMapping mapping,
