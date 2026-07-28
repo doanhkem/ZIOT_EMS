@@ -69,6 +69,7 @@ public @interface ConfigMeter {
 		METER_SCHNEIDER_ACTI9_SMARTLINK("MODEL/Meter.Schneider.Acti9.Smartlink"), //
 		METER_SELEC_CUSTOM("MODEL/Meter.Selec.Custom"), //
 		METER_SELEC_MFM383("MODEL/Meter.Selec.MFM383"), //
+		METER_SELEC_MFM383_BIG_ENDIAN("MODEL/Meter.Selec.MFM383.BigEndian"), //
 		METER_SMA_SHM20("MODEL/Meter.SMA.SHM20");
 
 		private final String key;
