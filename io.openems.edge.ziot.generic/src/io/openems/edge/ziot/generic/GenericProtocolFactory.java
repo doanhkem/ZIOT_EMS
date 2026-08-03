@@ -156,22 +156,22 @@ final class GenericProtocolFactory {
 			var converter = converter(register, channel, 1.0);
 			var mapped = mapper.map(channel, element, converter);
 			if (register.size.intValue() == 1 && mapped instanceof AbstractSingleWordElement<?, ?> singleWordElement) {
-				tasks.add(new FC6WriteRegisterTask(state -> logWriteOk(component, register, channel, "FC6", state),
+				tasks.add(new FC6WriteRegisterTask(state -> logWriteFailure(component, register, channel, "FC6", state),
 						register.offset, singleWordElement));
 			} else {
-				tasks.add(new FC16WriteRegistersTask(state -> logWriteOk(component, register, channel, "FC16", state),
+				tasks.add(new FC16WriteRegistersTask(state -> logWriteFailure(component, register, channel, "FC16", state),
 						register.offset, mapped));
 			}
 		}
 	}
 
-	private static void logWriteOk(AbstractOpenemsModbusComponent component, GenericMapping.Register register,
+	private static void logWriteFailure(AbstractOpenemsModbusComponent component, GenericMapping.Register register,
 			ChannelId channel, String functionCode, ExecuteState state) {
-		if (state != ExecuteState.OK) {
-			return;
+		if (state instanceof ExecuteState.Error error) {
+			LOG.warn("ZIOT_WRITE_FAILED component={} tag={} channel={} fc={} offset={} size={} error={}", component.id(),
+					register.tagName, channel.id(), functionCode, register.offset, register.size,
+					error.exception().getMessage());
 		}
-		LOG.info("ZIOT_WRITE_OK component={} tag={} channel={} fc={} offset={} size={}", component.id(),
-				register.tagName, channel.id(), functionCode, register.offset, register.size);
 	}
 
 	private static ModbusElement element(GenericMapping mapping, GenericMapping.Register register) {
