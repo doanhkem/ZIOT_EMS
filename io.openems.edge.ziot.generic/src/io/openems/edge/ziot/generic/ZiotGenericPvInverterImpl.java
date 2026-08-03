@@ -22,6 +22,7 @@ import io.openems.edge.bridge.modbus.api.AbstractOpenemsModbusComponent;
 import io.openems.edge.bridge.modbus.api.BridgeModbus;
 import io.openems.edge.bridge.modbus.api.ModbusComponent;
 import io.openems.edge.bridge.modbus.api.ModbusProtocol;
+import io.openems.edge.common.channel.FloatWriteChannel;
 import io.openems.edge.common.channel.IntegerWriteChannel;
 import io.openems.edge.common.component.OpenemsComponent;
 import io.openems.edge.common.modbusslave.ModbusSlave;
@@ -124,7 +125,7 @@ public class ZiotGenericPvInverterImpl extends AbstractOpenemsModbusComponent
 			return;
 		}
 		if (this.writeCapabilities.has(ZiotGenericPvInverter.ChannelId.SET_ACTIVE_POWER_LIMIT_PERCENT)) {
-			this.<IntegerWriteChannel>channel(ZiotGenericPvInverter.ChannelId.SET_ACTIVE_POWER_LIMIT_PERCENT)
+			this.<FloatWriteChannel>channel(ZiotGenericPvInverter.ChannelId.SET_ACTIVE_POWER_LIMIT_PERCENT)
 					.setNextWriteValue(this.powerToPercent(value, this.hasPowerLimitEnable()));
 			this.enablePowerLimitIfConfigured();
 			return;
@@ -137,13 +138,13 @@ public class ZiotGenericPvInverterImpl extends AbstractOpenemsModbusComponent
 		this.setActivePowerLimit(Integer.valueOf(value));
 	}
 
-	private int powerToPercent(int power, boolean avoidZeroPercent) throws OpenemsException {
+	private float powerToPercent(int power, boolean avoidZeroPercent) throws OpenemsException {
 		var maxPower = this.getMaxApparentPower().orElse(0);
 		if (maxPower <= 0) {
 			throw new OpenemsException(
 					"MaxApparentPower must be configured/read before writing an active-power percentage.");
 		}
-		return clampPercent((int) Math.round(power * 100.0 / maxPower), avoidZeroPercent);
+		return clampPercent((float) (power * 100.0 / maxPower), avoidZeroPercent);
 	}
 
 	private boolean hasPowerLimitEnable() {
@@ -158,7 +159,7 @@ public class ZiotGenericPvInverterImpl extends AbstractOpenemsModbusComponent
 				.setNextWriteValue(1);
 	}
 
-	private static int clampPercent(int value, boolean avoidZeroPercent) {
+	private static float clampPercent(float value, boolean avoidZeroPercent) {
 		var min = avoidZeroPercent ? 1 : 0;
 		return Math.max(min, Math.min(100, value));
 	}

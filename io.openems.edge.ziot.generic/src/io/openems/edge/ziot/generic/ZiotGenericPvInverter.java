@@ -33,7 +33,7 @@ public interface ZiotGenericPvInverter extends ManagedSymmetricPvInverter, Elect
 		RESTART_DEVICE(Doc.of(INTEGER).accessMode(READ_WRITE)), //
 		POWER_ON_OFF(Doc.of(INTEGER).accessMode(READ_WRITE)), //
 		SET_ACTIVE_POWER_LIMIT(Doc.of(INTEGER).unit(WATT).accessMode(READ_WRITE)), //
-		SET_ACTIVE_POWER_LIMIT_PERCENT(Doc.of(INTEGER).unit(PERCENT).accessMode(READ_WRITE)), //
+		SET_ACTIVE_POWER_LIMIT_PERCENT(Doc.of(FLOAT).unit(PERCENT).accessMode(READ_WRITE)), //
 		ACTIVE_POWER_LIMIT_ENABLE(Doc.of(INTEGER).accessMode(READ_WRITE)), //
 		ACTIVE_POWER_LIMIT_REVERT_TIME(Doc.of(INTEGER).unit(SECONDS)), //
 		P_LIMIT_TYPE(Doc.of(INTEGER).accessMode(READ_WRITE)), //

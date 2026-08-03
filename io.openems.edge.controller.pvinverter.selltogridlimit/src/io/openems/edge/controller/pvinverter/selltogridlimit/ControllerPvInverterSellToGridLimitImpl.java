@@ -116,8 +116,8 @@ public class ControllerPvInverterSellToGridLimitImpl extends AbstractOpenemsComp
 		if (maxPower <= 0) {
 			return null;
 		}
-		var percent = Math.max(-100, Math.min(100, Math.round(power * 100F / maxPower)));
-		return String.format(Locale.ROOT, "%.2f", (double) percent);
+		var percent = Math.max(-100.0, Math.min(100.0, power * 100.0 / maxPower));
+		return String.format(Locale.ROOT, "%.2f", percent);
 	}
 
 	private static String formatKw(int watts) {
