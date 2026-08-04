@@ -690,7 +690,97 @@ Ket qua:
 17:00-22:00: xa bam tai, toi da 400 kW.
 ```
 
-### 2.7 Checklist van hanh Hybrid
+### 2.7 Restart Device
+
+EMS Edge hien tai co JSON-RPC method rieng de BE/mobile goi restart thiet bi:
+
+```text
+method = restartDevice
+channel ghi that = RestartDevice
+```
+
+BE/mobile nen goi `restartDevice`, khong can biet truc tiep ten channel Modbus. Edge se tu ghi mot lan xuong channel `RestartDevice` cua component duoc chon.
+
+Dieu kien de restart ghi duoc xuong thiet bi:
+
+| Dieu kien | Ghi chu |
+| --- | --- |
+| Component ton tai | Vi du `pvInverter0`, `ess0`, `meter0`, `sensor0` |
+| Component la ZIOT Generic device | PV inverter, ESS, meter hoac sensor generic deu co channel `RestartDevice` |
+| Model trong conf co `write_registers` cho `RestartDevice` | `offSet`, `dataType`, `size` phai khac `null` |
+| Device cho phep ghi | Khong de `readOnly = true` neu component co field nay |
+
+Khai bao mau trong `outputs/deviceConfig_openems_fields.conf`:
+
+```json
+{
+  "tagName": "RestartDevice",
+  "unit": "",
+  "offSet": 12345,
+  "dataType": "uint16",
+  "PF": 0,
+  "size": 1
+}
+```
+
+Neu chua co thong tin thanh ghi restart cua model, de `offSet/dataType/size = null`. Khi do channel van hien tren Edge, nhung se khong co Modbus write task that su.
+
+#### BE goi Restart thiet bi
+
+BE/mobile nen goi JSON-RPC method `restartDevice`, khong can biet truc tiep ten channel Modbus.
+
+Restart mot thiet bi:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": "30000000-0000-0000-0000-000000000001",
+  "method": "restartDevice",
+  "params": {
+    "componentId": "pvInverter0",
+    "value": 1
+  }
+}
+```
+
+Restart nhieu thiet bi:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": "31000000-0000-0000-0000-000000000001",
+  "method": "restartDevice",
+  "params": {
+    "componentIds": ["pvInverter0", "pvInverter1", "ess0"],
+    "value": 1
+  }
+}
+```
+
+`value` la tuy chon. Neu BE/mobile khong gui `value`, Edge mac dinh ghi:
+
+```text
+value = 1
+```
+
+Endpoint nay ghi mot lan xuong channel `RestartDevice`, khong ghi lap theo timeout nhu `setChannelValue`.
+
+Khac voi `setChannelValue`, `restartDevice` chi dung cho thao tac restart. Khong dung method nay cho cac setpoint dieu khien lap lai nhu limit cong suat PV/ESS.
+
+Log van hanh:
+
+```text
+Ghi thanh cong: khong in ZIOT_WRITE_OK de tranh day log.
+Ghi that bai : in ZIOT_WRITE_FAILED component=... tag=RestartDevice channel=RestartDevice fc=... offset=... size=... error=...
+```
+
+Lenh grep tren IOT:
+
+```bash
+docker logs --since 10m openems-edge 2>&1 | grep -E "restartDevice|RestartDevice|ZIOT_WRITE_FAILED"
+```
+
+### 2.8 Checklist van hanh Hybrid
 
 | Van de | Can kiem tra |
 | --- | --- |
@@ -700,3 +790,4 @@ Ket qua:
 | TOU khong activate | Kiem tra JSON, overlap slot, qua 20 slot |
 | BESS khong xa | SOC <= `minSoc` hoac device discharge limit = 0 |
 | BESS khong sac | SOC >= `maxSoc` hoac device charge limit = 0 |
+| Restart khong tac dung | Kiem tra model co `write_registers.RestartDevice` voi `offSet/dataType/size` khac `null` |
