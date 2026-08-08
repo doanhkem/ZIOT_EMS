@@ -36,6 +36,7 @@ public @interface ConfigPvInverter {
 
 	enum Model {
 		PV_INVERTER_AISWEI_ASW150K_LT("MODEL/PV-Inverter.AISWEI.ASW150K-LT"), //
+		PV_INVERTER_FOXESS_H3PLUS("MODEL/PV-Inverter.FoxESS.H3Plus"), //
 		PV_INVERTER_FRONIUS("MODEL/PV-Inverter.Fronius"), //
 		PV_INVERTER_HUAWEI_SMARTLOGGER("MODEL/PV-Inverter.Huawei.SmartLogger"), //
 		PV_INVERTER_KACO_BLUEPLANET("MODEL/PV-Inverter.KACO.blueplanet"), //
