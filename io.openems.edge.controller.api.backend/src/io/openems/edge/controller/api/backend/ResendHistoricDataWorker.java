@@ -214,8 +214,13 @@ public final class ResendHistoricDataWorker extends AbstractWorker {
 		final var channelsToQuery = new HashSet<ChannelAddress>();
 		final var units = new HashMap<String, Unit>();
 		final var expectedAddresses = new HashSet<String>();
+		final var enabledComponents = this.componentManager.getEnabledComponents();
+		final var metersHiddenByMeterSum = SendChannelValuesWorker.getMetersHiddenByMeterSum(enabledComponents);
 
-		for (var component : this.componentManager.getEnabledComponents()) {
+		for (var component : enabledComponents) {
+			if (metersHiddenByMeterSum.contains(component.id())) {
+				continue;
+			}
 			final var deviceChannels = SendChannelValuesWorker.getDeviceChannels(component.id());
 			if (deviceChannels == null) {
 				continue;

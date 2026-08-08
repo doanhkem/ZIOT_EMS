@@ -154,8 +154,9 @@ public class SendChannelValuesWorker {
 
 		// Update the values of all channels
 		final var enabledComponents = this.parent.componentManager.getEnabledComponents();
-		final var aggregatedValues = this.collectAggregatedData(now, enabledComponents);
-		final var changedErrorCodes = this.collectChangedErrorCodes(enabledComponents);
+		final var metersHiddenByMeterSum = getMetersHiddenByMeterSum(enabledComponents);
+		final var aggregatedValues = this.collectAggregatedData(now, enabledComponents, metersHiddenByMeterSum);
+		final var changedErrorCodes = this.collectChangedErrorCodes(enabledComponents, metersHiddenByMeterSum);
 
 		if (!changedErrorCodes.isEmpty()) {
 			this.executor.execute(new SendImmediateErrorTask(this, now.toInstant(), changedErrorCodes));
@@ -195,6 +196,29 @@ public class SendChannelValuesWorker {
 		return null;
 	}
 
+	protected static Set<String> getMetersHiddenByMeterSum(List<OpenemsComponent> enabledComponents) {
+		final var result = new HashSet<String>();
+		for (var component : enabledComponents) {
+			if (!component.id().toLowerCase().startsWith("metersum")) {
+				continue;
+			}
+			try {
+				final var method = component.getClass().getMethod("getMeterIds");
+				final var meterIds = method.invoke(component);
+				if (meterIds instanceof String[] ids) {
+					for (var id : ids) {
+						if (id != null && !id.isBlank()) {
+							result.add(id);
+						}
+					}
+				}
+			} catch (ReflectiveOperationException | SecurityException e) {
+				// Not a ZIOT meter sum implementation. Keep its child meters visible.
+			}
+		}
+		return result;
+	}
+
 	@SuppressWarnings("deprecation")
 	protected static JsonElement getChannelValue(OpenemsComponent component, String channelId) {
 		final var errorCodeIndex = getErrorCodeIndex(channelId);
@@ -227,10 +251,14 @@ public class SendChannelValuesWorker {
 				|| componentId.toLowerCase().startsWith("ess") && "ActivePower".equals(channelId);
 	}
 
-	private Map<String, JsonElement> collectChangedErrorCodes(List<OpenemsComponent> enabledComponents) {
+	private Map<String, JsonElement> collectChangedErrorCodes(List<OpenemsComponent> enabledComponents,
+			Set<String> metersHiddenByMeterSum) {
 		final var currentComponents = new HashSet<String>();
 		final var result = new HashMap<String, JsonElement>();
 		for (var component : enabledComponents) {
+			if (metersHiddenByMeterSum.contains(component.id())) {
+				continue;
+			}
 			if (getDeviceChannels(component.id()) == null) {
 				continue;
 			}
@@ -326,7 +354,7 @@ public class SendChannelValuesWorker {
 	}
 
 	private TreeBasedTable<Long, String, JsonElement> collectAggregatedData(ZonedDateTime now,
-			List<OpenemsComponent> enabledComponents) {
+			List<OpenemsComponent> enabledComponents, Set<String> metersHiddenByMeterSum) {
 		final var endTime = now.truncatedTo(DurationUnit.ofMinutes(AGGREGATION_MINUTES));
 		final var startTime = endTime.minusMinutes(AGGREGATION_MINUTES);
 
@@ -347,7 +375,8 @@ public class SendChannelValuesWorker {
 		enabledComponents.stream() //
 				.flatMap(component -> component.channels().stream()) //
 				.filter(channel -> // Ignore WRITE_ONLY Channels
-				channel.channelDoc().getAccessMode() != AccessMode.WRITE_ONLY //
+				!metersHiddenByMeterSum.contains(channel.address().getComponentId()) //
+						&& channel.channelDoc().getAccessMode() != AccessMode.WRITE_ONLY //
 						// Send only the configured device telemetry schema
 						&& Optional.ofNullable(getDeviceChannels(channel.address().getComponentId()))
 								.map(channels -> channels.contains(channel.address().getChannelId())).orElse(false) //
