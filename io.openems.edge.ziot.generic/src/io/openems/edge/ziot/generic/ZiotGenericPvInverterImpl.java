@@ -20,6 +20,7 @@ import io.openems.common.exceptions.OpenemsException;
 import io.openems.common.types.MeterType;
 import io.openems.edge.bridge.modbus.api.AbstractOpenemsModbusComponent;
 import io.openems.edge.bridge.modbus.api.BridgeModbus;
+import io.openems.edge.bridge.modbus.api.ElementToChannelConverter;
 import io.openems.edge.bridge.modbus.api.ModbusComponent;
 import io.openems.edge.bridge.modbus.api.ModbusProtocol;
 import io.openems.edge.common.channel.FloatWriteChannel;
@@ -48,6 +49,8 @@ public class ZiotGenericPvInverterImpl extends AbstractOpenemsModbusComponent
 	private GenericMapping mapping = new GenericMapping();
 	private GenericWriteCapabilities writeCapabilities = GenericWriteCapabilities.of(this.mapping,
 			GenericChannelMap.pvInverter());
+	private Long lastValidActiveProductionEnergy = null;
+	private Long lastValidActiveConsumptionEnergy = null;
 
 	public ZiotGenericPvInverterImpl() {
 		super(//
@@ -93,6 +96,14 @@ public class ZiotGenericPvInverterImpl extends AbstractOpenemsModbusComponent
 			io.openems.edge.common.channel.ChannelId channelId,
 			io.openems.edge.bridge.modbus.api.element.ModbusElement element,
 			io.openems.edge.bridge.modbus.api.ElementToChannelConverter converter) {
+		if (channelId == ElectricityMeter.ChannelId.ACTIVE_PRODUCTION_ENERGY) {
+			converter = ElementToChannelConverter.chain(converter,
+					new ElementToChannelConverter(value -> this.guardActiveProductionEnergy(value), value -> value));
+		}
+		if (channelId == ElectricityMeter.ChannelId.ACTIVE_CONSUMPTION_ENERGY) {
+			converter = ElementToChannelConverter.chain(converter,
+					new ElementToChannelConverter(value -> this.guardActiveConsumptionEnergy(value), value -> value));
+		}
 		return this.m(channelId, element, converter);
 	}
 
@@ -153,6 +164,36 @@ public class ZiotGenericPvInverterImpl extends AbstractOpenemsModbusComponent
 				this._setActivePower((Integer) null);
 			}
 		});
+	}
+
+	private Object guardActiveProductionEnergy(Object value) {
+		var guardedValue = this.guardEnergy(value, this.lastValidActiveProductionEnergy);
+		if (guardedValue instanceof Number number) {
+			this.lastValidActiveProductionEnergy = number.longValue();
+		}
+		return guardedValue;
+	}
+
+	private Object guardActiveConsumptionEnergy(Object value) {
+		var guardedValue = this.guardEnergy(value, this.lastValidActiveConsumptionEnergy);
+		if (guardedValue instanceof Number number) {
+			this.lastValidActiveConsumptionEnergy = number.longValue();
+		}
+		return guardedValue;
+	}
+
+	private Object guardEnergy(Object value, Long lastValidEnergy) {
+		if (!(value instanceof Number number)) {
+			return value;
+		}
+		var energy = number.longValue();
+		if (lastValidEnergy == null || lastValidEnergy <= 0) {
+			return value;
+		}
+		if (energy > Math.round(lastValidEnergy * 1.2)) {
+			return null;
+		}
+		return value;
 	}
 
 	private int clampPower(int power) throws OpenemsException {
