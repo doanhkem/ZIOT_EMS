@@ -75,6 +75,7 @@ public class ZiotGenericPvInverterImpl extends AbstractOpenemsModbusComponent
 			return;
 		}
 		this.updateConfiguredLimits();
+		this.activateActivePowerGuard();
 	}
 
 	@Override
@@ -116,12 +117,12 @@ public class ZiotGenericPvInverterImpl extends AbstractOpenemsModbusComponent
 			return;
 		}
 		if (this.writeCapabilities.has(ManagedSymmetricPvInverter.ChannelId.ACTIVE_POWER_LIMIT)) {
-			this.getActivePowerLimitChannel().setNextWriteValue(value);
+			this.getActivePowerLimitChannel().setNextWriteValue(this.clampPower(value));
 			return;
 		}
 		if (this.writeCapabilities.has(ZiotGenericPvInverter.ChannelId.SET_ACTIVE_POWER_LIMIT)) {
 			this.<IntegerWriteChannel>channel(ZiotGenericPvInverter.ChannelId.SET_ACTIVE_POWER_LIMIT)
-					.setNextWriteValue(value);
+					.setNextWriteValue(this.clampPower(value));
 			return;
 		}
 		if (this.writeCapabilities.has(ZiotGenericPvInverter.ChannelId.SET_ACTIVE_POWER_LIMIT_PERCENT)) {
@@ -136,6 +137,30 @@ public class ZiotGenericPvInverterImpl extends AbstractOpenemsModbusComponent
 	@Override
 	public void setActivePowerLimit(int value) throws OpenemsNamedException {
 		this.setActivePowerLimit(Integer.valueOf(value));
+	}
+
+	private void activateActivePowerGuard() {
+		this.getActivePowerChannel().onSetNextValue(value -> {
+			var activePower = value.get();
+			if (activePower == null) {
+				return;
+			}
+			var maxPower = this.getMaxApparentPower().orElse(0);
+			if (maxPower <= 0) {
+				return;
+			}
+			if (Math.abs((long) activePower) > Math.round(maxPower * 1.1)) {
+				this._setActivePower((Integer) null);
+			}
+		});
+	}
+
+	private int clampPower(int power) throws OpenemsException {
+		var maxPower = this.getMaxApparentPower().orElse(0);
+		if (maxPower <= 0) {
+			throw new OpenemsException("MaxApparentPower must be configured/read before writing an active-power limit.");
+		}
+		return Math.max(0, Math.min(maxPower, power));
 	}
 
 	private float powerToPercent(int power, boolean avoidZeroPercent) throws OpenemsException {
@@ -160,8 +185,7 @@ public class ZiotGenericPvInverterImpl extends AbstractOpenemsModbusComponent
 	}
 
 	private static float clampPercent(float value, boolean avoidZeroPercent) {
-		var min = avoidZeroPercent ? 1 : 0;
-		return Math.max(min, Math.min(100, value));
+		return Math.max(0, Math.min(110, value));
 	}
 
 	private void updateConfiguredLimits() {

@@ -116,7 +116,7 @@ public class ControllerPvInverterSellToGridLimitImpl extends AbstractOpenemsComp
 		if (maxPower <= 0) {
 			return null;
 		}
-		var percent = Math.max(-100.0, Math.min(100.0, power * 100.0 / maxPower));
+		var percent = Math.max(0.0, Math.min(110.0, power * 100.0 / maxPower));
 		return String.format(Locale.ROOT, "%.2f", percent);
 	}
 
