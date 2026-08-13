@@ -1,5 +1,10 @@
 package io.openems.edge.ziot.generic;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
 import org.osgi.service.cm.ConfigurationAdmin;
 import org.osgi.service.component.ComponentContext;
 import org.osgi.service.component.annotations.Activate;
@@ -13,6 +18,13 @@ import org.osgi.service.component.annotations.ReferencePolicyOption;
 import org.osgi.service.event.Event;
 import org.osgi.service.event.EventHandler;
 import org.osgi.service.metatype.annotations.Designate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 import io.openems.common.channel.AccessMode;
 import io.openems.common.exceptions.OpenemsError.OpenemsNamedException;
@@ -41,6 +53,12 @@ import io.openems.edge.pvinverter.api.ManagedSymmetricPvInverter;
 public class ZiotGenericPvInverterImpl extends AbstractOpenemsModbusComponent
 		implements ZiotGenericPvInverter, ManagedSymmetricPvInverter, ElectricityMeter, ModbusComponent,
 		OpenemsComponent, EventHandler, ModbusSlave {
+
+	private static final Logger LOG = LoggerFactory.getLogger(ZiotGenericPvInverterImpl.class);
+	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+	private static final Object ENERGY_GUARD_LOCK = new Object();
+	private static final Path ENERGY_GUARD_FILE = Path.of(System.getProperty("ziot.energy.guard.file",
+			"/opt/openems-edge/data/ziot-energy-guard.json"));
 
 	@Reference
 	private ConfigurationAdmin cm;
@@ -73,6 +91,7 @@ public class ZiotGenericPvInverterImpl extends AbstractOpenemsModbusComponent
 		this.config = config;
 		this.mapping = GenericMappingLoader.load(config.mappingFile(), config.model().key());
 		this.writeCapabilities = GenericWriteCapabilities.of(this.mapping, GenericChannelMap.pvInverter());
+		this.loadEnergyGuardCache();
 		if (super.activate(context, config.id(), config.alias(), config.enabled(), config.modbusUnitId(), this.cm,
 				"Modbus", config.modbus_id())) {
 			return;
@@ -167,22 +186,28 @@ public class ZiotGenericPvInverterImpl extends AbstractOpenemsModbusComponent
 	}
 
 	private Object guardActiveProductionEnergy(Object value) {
-		var guardedValue = this.guardEnergy(value, this.lastValidActiveProductionEnergy);
+		var guardedValue = this.guardEnergy(ElectricityMeter.ChannelId.ACTIVE_PRODUCTION_ENERGY, value,
+				this.lastValidActiveProductionEnergy);
 		if (guardedValue instanceof Number number) {
 			this.lastValidActiveProductionEnergy = number.longValue();
+			this.saveEnergyGuardValue(ElectricityMeter.ChannelId.ACTIVE_PRODUCTION_ENERGY,
+					this.lastValidActiveProductionEnergy);
 		}
 		return guardedValue;
 	}
 
 	private Object guardActiveConsumptionEnergy(Object value) {
-		var guardedValue = this.guardEnergy(value, this.lastValidActiveConsumptionEnergy);
+		var guardedValue = this.guardEnergy(ElectricityMeter.ChannelId.ACTIVE_CONSUMPTION_ENERGY, value,
+				this.lastValidActiveConsumptionEnergy);
 		if (guardedValue instanceof Number number) {
 			this.lastValidActiveConsumptionEnergy = number.longValue();
+			this.saveEnergyGuardValue(ElectricityMeter.ChannelId.ACTIVE_CONSUMPTION_ENERGY,
+					this.lastValidActiveConsumptionEnergy);
 		}
 		return guardedValue;
 	}
 
-	private Object guardEnergy(Object value, Long lastValidEnergy) {
+	private Object guardEnergy(ElectricityMeter.ChannelId channelId, Object value, Long lastValidEnergy) {
 		if (!(value instanceof Number number)) {
 			return value;
 		}
@@ -190,10 +215,71 @@ public class ZiotGenericPvInverterImpl extends AbstractOpenemsModbusComponent
 		if (lastValidEnergy == null || lastValidEnergy <= 0) {
 			return value;
 		}
+		if (energy < lastValidEnergy) {
+			LOG.warn("KWH_GUARD_BLOCKED component={} channel={} old={} new={} reason=DECREASE", this.id(),
+					channelId.id(), lastValidEnergy, energy);
+			return null;
+		}
 		if (energy > Math.round(lastValidEnergy * 1.2)) {
+			LOG.warn("KWH_GUARD_BLOCKED component={} channel={} old={} new={} threshold={} reason=SPIKE", this.id(),
+					channelId.id(), lastValidEnergy, energy, Math.round(lastValidEnergy * 1.2));
 			return null;
 		}
 		return value;
+	}
+
+	private void loadEnergyGuardCache() {
+		synchronized (ENERGY_GUARD_LOCK) {
+			var cache = readEnergyGuardFile();
+			this.lastValidActiveProductionEnergy = readEnergyGuardValue(cache,
+					this.energyGuardKey(ElectricityMeter.ChannelId.ACTIVE_PRODUCTION_ENERGY));
+			this.lastValidActiveConsumptionEnergy = readEnergyGuardValue(cache,
+					this.energyGuardKey(ElectricityMeter.ChannelId.ACTIVE_CONSUMPTION_ENERGY));
+		}
+	}
+
+	private void saveEnergyGuardValue(ElectricityMeter.ChannelId channelId, long value) {
+		synchronized (ENERGY_GUARD_LOCK) {
+			var cache = readEnergyGuardFile();
+			cache.addProperty(this.energyGuardKey(channelId), value);
+			writeEnergyGuardFile(cache);
+		}
+	}
+
+	private String energyGuardKey(ElectricityMeter.ChannelId channelId) {
+		return this.config.id() + "/" + channelId.id();
+	}
+
+	private static Long readEnergyGuardValue(JsonObject cache, String key) {
+		var element = cache.get(key);
+		if (element == null || !element.isJsonPrimitive() || !element.getAsJsonPrimitive().isNumber()) {
+			return null;
+		}
+		return element.getAsLong();
+	}
+
+	private static JsonObject readEnergyGuardFile() {
+		if (!Files.exists(ENERGY_GUARD_FILE)) {
+			return new JsonObject();
+		}
+		try {
+			var json = JsonParser.parseString(Files.readString(ENERGY_GUARD_FILE, StandardCharsets.UTF_8));
+			if (json != null && json.isJsonObject()) {
+				return json.getAsJsonObject();
+			}
+		} catch (IOException | RuntimeException e) {
+			LOG.warn("Failed to read ZIOT energy guard file [{}]: {}", ENERGY_GUARD_FILE, e.getMessage());
+		}
+		return new JsonObject();
+	}
+
+	private static void writeEnergyGuardFile(JsonObject cache) {
+		try {
+			Files.createDirectories(ENERGY_GUARD_FILE.getParent());
+			Files.writeString(ENERGY_GUARD_FILE, GSON.toJson(cache), StandardCharsets.UTF_8);
+		} catch (IOException | RuntimeException e) {
+			LOG.warn("Failed to write ZIOT energy guard file [{}]: {}", ENERGY_GUARD_FILE, e.getMessage());
+		}
 	}
 
 	private int clampPower(int power) throws OpenemsException {
