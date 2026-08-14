@@ -57,6 +57,7 @@ public class ZiotGenericPvInverterImpl extends AbstractOpenemsModbusComponent
 	private static final Logger LOG = LoggerFactory.getLogger(ZiotGenericPvInverterImpl.class);
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 	private static final Object ENERGY_GUARD_LOCK = new Object();
+	private static final long ENERGY_GUARD_MAX_STEP_WH = 20_000L;
 	private static final Path ENERGY_GUARD_FILE = Path.of(System.getProperty("ziot.energy.guard.file",
 			"/opt/openems-edge/data/ziot-energy-guard.json"));
 
@@ -220,9 +221,12 @@ public class ZiotGenericPvInverterImpl extends AbstractOpenemsModbusComponent
 					channelId.id(), lastValidEnergy, energy);
 			return null;
 		}
-		if (energy > Math.round(lastValidEnergy * 1.2)) {
-			LOG.warn("KWH_GUARD_BLOCKED component={} channel={} old={} new={} threshold={} reason=SPIKE", this.id(),
-					channelId.id(), lastValidEnergy, energy, Math.round(lastValidEnergy * 1.2));
+		var relativeThreshold = Math.round(lastValidEnergy * 1.2);
+		var absoluteThreshold = lastValidEnergy + ENERGY_GUARD_MAX_STEP_WH;
+		if (energy > relativeThreshold || energy > absoluteThreshold) {
+			LOG.warn(
+					"KWH_GUARD_BLOCKED component={} channel={} old={} new={} relativeThreshold={} absoluteThreshold={} reason=SPIKE",
+					this.id(), channelId.id(), lastValidEnergy, energy, relativeThreshold, absoluteThreshold);
 			return null;
 		}
 		return value;
