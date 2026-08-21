@@ -26,6 +26,9 @@ public class OnOpen implements io.openems.common.websocket.OnOpen {
 		var message = new EdgeConfigNotification(config);
 		this.parent.websocket.sendMessage(message);
 
+		// Resend exact messages that failed while Backend was disconnected.
+		this.parent.resendPendingBackendMessages();
+
 		// Send all Channel values
 		this.parent.sendChannelValuesWorker.sendValuesOfAllChannelsOnce();
 

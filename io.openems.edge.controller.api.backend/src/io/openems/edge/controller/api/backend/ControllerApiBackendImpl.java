@@ -2,11 +2,16 @@ package io.openems.edge.controller.api.backend;
 
 import static io.openems.common.utils.StringUtils.definedOrElse;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -15,6 +20,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import io.openems.common.websocket.CommonHttpHeader;
 import org.osgi.service.component.ComponentContext;
@@ -33,6 +39,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import io.openems.common.exceptions.OpenemsError.OpenemsNamedException;
+import io.openems.common.jsonrpc.base.JsonrpcMessage;
 import io.openems.common.jsonrpc.base.JsonrpcRequest;
 import io.openems.common.jsonrpc.base.JsonrpcResponseSuccess;
 import io.openems.common.jsonrpc.notification.EdgeConfigNotification;
@@ -67,11 +74,15 @@ public class ControllerApiBackendImpl extends AbstractOpenemsComponent
 		implements ControllerApiBackend, Controller, OpenemsComponent, EventHandler {
 
 	protected static final String COMPONENT_NAME = "Controller.Api.Backend";
+	private static final Path PENDING_QUEUE_FILE = Path.of(System.getProperty("ziot.backend.pending.queue.file",
+			"/opt/openems-edge/data/ziot-backend-pending-queue.jsonl"));
 
 	public static final Key<WebsocketClient> WEBSOCKET_CLIENT_KEY = new Key<>("websocketClient", WebsocketClient.class);
 
 	protected final SendChannelValuesWorker sendChannelValuesWorker = new SendChannelValuesWorker(this);
 	protected final ApiWorker apiWorker = new ApiWorker(this);
+	private final Object pendingQueueLock = new Object();
+	private final AtomicBoolean pendingQueueResendRunning = new AtomicBoolean(false);
 
 	private final Logger log = LoggerFactory.getLogger(ControllerApiBackendImpl.class);
 	private final String instanceId = UUID.randomUUID().toString();
@@ -165,7 +176,7 @@ public class ControllerApiBackendImpl extends AbstractOpenemsComponent
 				this.getLastSuccessFulResendChannel().address(), //
 				config.resendPriority(), //
 				t -> this.getLastSuccessFulResendChannel().setNextValue(t), //
-				t -> this.websocket.sendMessage(t) //
+				this::sendMessageOrQueue //
 		));
 		this.resendHistoricDataWorker.activate(this.id(), false);
 
@@ -272,6 +283,105 @@ public class ControllerApiBackendImpl extends AbstractOpenemsComponent
 			return null;
 		}
 		return this.executor.scheduleWithFixedDelay(command, initialDelay, delay, unit);
+	}
+
+	protected boolean sendMessageOrQueue(JsonrpcMessage message) {
+		final var wasSent = this.websocket != null && this.websocket.sendMessage(message);
+		if (!wasSent) {
+			this.enqueuePendingBackendMessage(message);
+		}
+		return wasSent;
+	}
+
+	protected void resendPendingBackendMessages() {
+		if (!this.pendingQueueResendRunning.compareAndSet(false, true)) {
+			return;
+		}
+		this.execute(() -> {
+			try {
+				this.resendPendingBackendMessagesNow();
+			} finally {
+				this.pendingQueueResendRunning.set(false);
+			}
+		});
+	}
+
+	private void enqueuePendingBackendMessage(JsonrpcMessage message) {
+		synchronized (this.pendingQueueLock) {
+			try {
+				Files.createDirectories(PENDING_QUEUE_FILE.getParent());
+				Files.writeString(PENDING_QUEUE_FILE, message.toString() + System.lineSeparator(),
+						StandardCharsets.UTF_8, java.nio.file.StandardOpenOption.CREATE,
+						java.nio.file.StandardOpenOption.APPEND);
+				this.logInfo(this.log, "BACKEND_PENDING_QUEUED file=" + PENDING_QUEUE_FILE);
+			} catch (IOException | RuntimeException e) {
+				this.logWarn(this.log, "Unable to persist backend pending message: " + e.getMessage());
+			}
+		}
+	}
+
+	private void resendPendingBackendMessagesNow() {
+		synchronized (this.pendingQueueLock) {
+			if (!Files.exists(PENDING_QUEUE_FILE)) {
+				return;
+			}
+			final List<String> lines;
+			try {
+				lines = Files.readAllLines(PENDING_QUEUE_FILE, StandardCharsets.UTF_8);
+			} catch (IOException | RuntimeException e) {
+				this.logWarn(this.log, "Unable to read backend pending queue: " + e.getMessage());
+				return;
+			}
+
+			var sent = 0;
+			for (var i = 0; i < lines.size(); i++) {
+				final var line = lines.get(i);
+				if (line.isBlank()) {
+					sent++;
+					continue;
+				}
+				final JsonrpcMessage message;
+				try {
+					message = JsonrpcMessage.from(line);
+				} catch (OpenemsNamedException | RuntimeException e) {
+					this.logWarn(this.log, "Dropping invalid backend pending message: " + e.getMessage());
+					sent++;
+					continue;
+				}
+
+				if (this.websocket == null || !this.websocket.sendMessage(message)) {
+					this.writePendingQueue(lines.subList(i, lines.size()));
+					this.logWarn(this.log, "BACKEND_PENDING_RESEND_FAILED remaining=" + (lines.size() - i));
+					return;
+				}
+				sent++;
+			}
+
+			this.writePendingQueue(List.of());
+			if (sent > 0) {
+				this.logInfo(this.log, "BACKEND_PENDING_RESEND_OK sent=" + sent);
+			}
+		}
+	}
+
+	private void writePendingQueue(List<String> lines) {
+		try {
+			if (lines.isEmpty()) {
+				Files.deleteIfExists(PENDING_QUEUE_FILE);
+				return;
+			}
+			Files.createDirectories(PENDING_QUEUE_FILE.getParent());
+			final var tmp = PENDING_QUEUE_FILE.resolveSibling(PENDING_QUEUE_FILE.getFileName() + ".tmp");
+			Files.write(tmp, lines, StandardCharsets.UTF_8);
+			try {
+				Files.move(tmp, PENDING_QUEUE_FILE, java.nio.file.StandardCopyOption.REPLACE_EXISTING,
+						java.nio.file.StandardCopyOption.ATOMIC_MOVE);
+			} catch (IOException e) {
+				Files.move(tmp, PENDING_QUEUE_FILE, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+			}
+		} catch (IOException | RuntimeException e) {
+			this.logWarn(this.log, "Unable to update backend pending queue: " + e.getMessage());
+		}
 	}
 
 	@Override

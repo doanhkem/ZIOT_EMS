@@ -551,7 +551,7 @@ public class SendChannelValuesWorker {
 			final var message = new TimestampedDataNotification();
 			message.add(this.timestamp.toEpochMilli(), this.changedErrorCodes);
 
-			final var wasSent = this.parent.parent.websocket.sendMessage(message);
+			final var wasSent = this.parent.parent.sendMessageOrQueue(message);
 			logSendResult(this.parent, wasSent, "LIVE", this.timestamp.toEpochMilli(), this.changedErrorCodes.size(),
 					message.getParams());
 			this.parent.parent.getUnableToSendChannel().setNextValue(!wasSent);
@@ -577,7 +577,7 @@ public class SendChannelValuesWorker {
 			final var message = new TimestampedDataNotification();
 			message.add(this.timestamp.toEpochMilli(), this.allValues);
 
-			final var wasSent = this.parent.parent.websocket.sendMessage(message);
+			final var wasSent = this.parent.parent.sendMessageOrQueue(message);
 			logSendResult(this.parent, wasSent, "LIVE", this.timestamp.toEpochMilli(), this.allValues.size(),
 					message.getParams());
 
